@@ -1,5 +1,9 @@
 name: CI
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -57,6 +61,12 @@ jobs:
           name: coverage-lcov
           path: coverage/lcov.info
           if-no-files-found: warn
+
+      - name: Enforce minimum coverage
+        uses: VeryGoodOpenSource/very_good_coverage@v3
+        with:
+          path: coverage/lcov.info
+          min_coverage: 45
 
       - name: Publish dry-run
         run: dart pub publish --dry-run

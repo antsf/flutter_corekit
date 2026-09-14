@@ -1,0 +1,97 @@
+name: Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify:
+    name: Verify before release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests
+        run: flutter test --timeout 60s
+
+      - name: Verify tag matches pubspec.yaml version
+        run: |
+          PUBSPEC_VERSION="v$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}')"
+          TAG_VERSION="${GITHUB_REF_NAME}"
+          if [ "$PUBSPEC_VERSION" != "$TAG_VERSION" ]; then
+            echo "Tag $TAG_VERSION does not match pubspec.yaml version $PUBSPEC_VERSION"
+            exit 1
+          fi
+
+      - name: Publish dry-run
+        run: dart pub publish --dry-run
+
+  release:
+    name: Create GitHub Release
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract CHANGELOG section for this tag
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="## $VERSION" '
+            $0 ~ "^## " { if (found) exit; if (index($0, ver) == 1) { found=1; next } }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "No CHANGELOG section found for $VERSION; using tag name as fallback." > release_notes.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: flutter_corekit ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publishing to pub.dev requires OIDC trust configured on pub.dev for this
+  # repo (Settings -> Automated publishing) before this job can run for real.
+  # Left commented out until that's set up and explicitly approved.
+  # publish:
+  #   name: Publish to pub.dev
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     id-token: write
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: stable
+  #     - run: flutter pub get
+  #     - run: dart pub publish --force

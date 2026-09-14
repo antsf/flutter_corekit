@@ -72,6 +72,7 @@ abstract class NetworkException extends Failure implements Exception {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
+      case DioExceptionType.transformTimeout:
         return NetworkTimeoutException(dioException: dioException);
       case DioExceptionType.badResponse:
         return _mapStatusCodeToException(dioException);
@@ -81,6 +82,15 @@ abstract class NetworkException extends Failure implements Exception {
         return NoInternetConnectionException(dioException: dioException);
       case DioExceptionType.unknown:
       case DioExceptionType.badCertificate:
+        return UnknownNetworkException(dioException: dioException);
+      // This default is intentionally kept even though the switch is
+      // exhaustive against the current dio version: it protects against a
+      // *future* dio release adding a new DioExceptionType value (as
+      // happened with `transformTimeout`), so this package degrades to
+      // UnknownNetworkException instead of a hard compile break for
+      // consumers who upgrade dio ahead of this package.
+      // ignore: unreachable_switch_default
+      default:
         return UnknownNetworkException(dioException: dioException);
     }
   }

@@ -143,7 +143,7 @@ void main() {
     group('toShortRupiah', () {
       test('formats number in millions (>= 1,000,000) with "jt" suffix', () {
         const value = 2500000;
-        expect(value.toShortRupiah(), 'Rp 2.5jt');
+        expect(value.toShortRupiah(), 'Rp 2,5jt');
       });
 
       test('formats number in thousands (>= 1,000) with "rb" suffix', () {
@@ -158,7 +158,7 @@ void main() {
 
       test('formats number just over a thousand', () {
         const value = 1050;
-        expect(value.toShortRupiah(), 'Rp 1.1rb');
+        expect(value.toShortRupiah(), 'Rp 1,1rb');
       });
 
       test('formats number less than 1000 (full format)', () {

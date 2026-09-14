@@ -22,18 +22,21 @@ extension IndonesianCurrency on num {
     return toString();
   }
 
-  /// Short informal Rupiah format. Example: `1500000` → `Rp 1.5jt`,
+  /// Short informal Rupiah format. Example: `1500000` → `Rp 1,5jt`,
   /// `50000` → `Rp 50rb`.
   ///
-  /// The fractional part uses a `.` separator (it is not locale-formatted);
-  /// the `< 1000` fallback uses Indonesian thousand grouping.
+  /// All branches use Indonesian (`id_ID`) locale formatting consistently
+  /// (comma `,` as the decimal separator, matching the `< 1000` fallback's
+  /// thousand grouping), so a `.` never appears with two different meanings
+  /// (decimal point vs. thousands separator) across the same output family.
   String toShortRupiah() {
+    final fmt = NumberFormat('0.#', 'id_ID');
     if (this >= 1000000) {
       final value = this / 1000000;
-      return 'Rp ${NumberFormat('0.#').format(value)}jt';
+      return 'Rp ${fmt.format(value)}jt';
     } else if (this >= 1000) {
       final value = this / 1000;
-      return 'Rp ${NumberFormat('0.#').format(value)}rb';
+      return 'Rp ${fmt.format(value)}rb';
     }
     return 'Rp ${NumberFormat.decimalPattern('id_ID').format(this)}';
   }

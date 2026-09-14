@@ -189,14 +189,15 @@ void main() {
       test('formatPhoneNumber handles non-digit characters', () {
         expect('+62 812-3456-7890'.formatPhoneNumber(), '62 812 3456 7890');
       });
-      test('formatPhoneNumber formats partial number correctly', () {
-        expect('081234567'.formatPhoneNumber(), '62 812 3456 7');
+      test('formatPhoneNumber returns null for a too-short partial number',
+          () {
+        expect('081234567'.formatPhoneNumber(), isNull);
       });
       test('formatPhoneNumber handles very long digits', () {
         expect('081234567890'.formatPhoneNumber(), '62 812 3456 7890');
       });
-      test('formatPhoneNumber handles empty string', () {
-        expect(''.formatPhoneNumber(), '');
+      test('formatPhoneNumber returns null for an empty string', () {
+        expect(''.formatPhoneNumber(), isNull);
       });
 
       test('withoutCountryCode62 removes prefix correctly', () {

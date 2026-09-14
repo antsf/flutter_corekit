@@ -38,18 +38,43 @@ extension StringExt on String {
         : replaceAll(RegExp(r'\d'), 'x');
   }
 
+  /// Extracts digits and normalizes to Indonesian `62`-prefixed form.
+  ///
+  /// Returns `null` if the input contains no digits at all, so callers can
+  /// distinguish "nothing to format" from a real (if short) number, instead
+  /// of receiving an unformatted echo of the original string.
+  String? _normalizedIndonesianDigits() {
+    final digits = replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return null;
+
+    if (digits.startsWith('0')) {
+      return '62${digits.substring(1)}';
+    }
+    if (digits.startsWith('62')) {
+      return digits;
+    }
+    return '62$digits';
+  }
+
+  /// Same digit-length window [isValidIndonesianPhone] uses, expressed on
+  /// an already-`62`-normalized digit string: `62` + 9–12 local digits
+  /// (i.e. 11–14 digits total).
+  static bool _isValidNormalizedLength(String normalized) =>
+      RegExp(r'^62[0-9]{9,12}$').hasMatch(normalized);
+
   /// Formats a phone number to Indonesian format with country code `62`.
+  ///
+  /// Returns `null` (rather than an unformatted echo of the input) when the
+  /// string contains no digits, or when the resulting digit count falls
+  /// outside the same valid range used by [isValidIndonesianPhone] — so a
+  /// string that fails validation is never silently "formatted" into a
+  /// plausible-looking but bogus number.
   ///
   /// Example: `081234567890` → `62 812 3456 7890`
   String? formatPhoneNumber({bool useHyphen = false}) {
-    final digits = replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) return this;
-
-    String formatted = digits;
-    if (formatted.startsWith('0')) {
-      formatted = '62${formatted.substring(1)}';
-    } else if (!formatted.startsWith('62')) {
-      formatted = '62$formatted';
+    final formatted = _normalizedIndonesianDigits();
+    if (formatted == null || !_isValidNormalizedLength(formatted)) {
+      return null;
     }
 
     final sep = useHyphen ? '-' : ' ';
@@ -60,13 +85,11 @@ extension StringExt on String {
           '${formatted.substring(5, 9)}$sep'
           '${formatted.substring(9, 13)}'
           '${formatted.length > 13 ? formatted.substring(13) : ''}';
-    } else if (formatted.length >= 9) {
+    } else {
       return '${formatted.substring(0, 2)}$sep'
           '${formatted.substring(2, 5)}$sep'
           '${formatted.substring(5, 9)}'
           '${formatted.length > 9 ? '$sep${formatted.substring(9)}' : ''}';
-    } else {
-      return formatted;
     }
   }
 
@@ -102,10 +125,12 @@ extension StringExt on String {
 
   /// Returns `true` if the string is a valid Indonesian phone number.
   ///
-  /// Accepts formats starting with `0` or `62`, 10–13 digits total.
+  /// Uses the same `62`-normalization and digit-length window (`62` +
+  /// 8–12 local digits) as [formatPhoneNumber], so a number that validates
+  /// here is guaranteed to also format successfully, and vice versa.
   bool get isValidIndonesianPhone {
-    final digits = replaceAll(RegExp(r'\D'), '');
-    return RegExp(r'^(62|0)[0-9]{9,12}$').hasMatch(digits);
+    final normalized = _normalizedIndonesianDigits();
+    return normalized != null && _isValidNormalizedLength(normalized);
   }
 }
 

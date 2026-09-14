@@ -4,9 +4,44 @@ import 'package:intl/date_symbol_data_local.dart';
 
 /// Extension methods for [DateTime] to format dates and times in Indonesian.
 extension IndonesianDate on DateTime {
-  /// Initializes the date formatting for the Indonesian locale.
+  static bool _initialized = false;
+  static Future<void>? _initializing;
+
+  /// Ensures Indonesian (`id_ID`) locale data is loaded before any of this
+  /// extension's formatting methods are called.
+  ///
+  /// `initializeDateFormatting` is asynchronous the first time it loads a
+  /// locale's data; calling a formatter before that completes can throw
+  /// `LocaleDataException`. Call and `await` this once during app startup
+  /// (e.g. in `main()`) for a reliable first render:
+  ///
+  /// ```dart
+  /// await IndonesianDate.ensureInitialized();
+  /// runApp(MyApp());
+  /// ```
+  ///
+  /// Safe to call multiple times/concurrently — the underlying load only
+  /// happens once; subsequent calls reuse the same in-flight/completed
+  /// future.
+  static Future<void> ensureInitialized() {
+    if (_initialized) return Future.value();
+    return _initializing ??= initializeDateFormatting('id_ID', null).then((_) {
+      _initialized = true;
+    });
+  }
+
+  /// Best-effort synchronous initialization for callers that never awaited
+  /// [ensureInitialized]. Triggers the load at most once (fire-and-forget)
+  /// instead of re-running `initializeDateFormatting` on every format call.
+  ///
+  /// If the very first formatter call happens before the locale data has
+  /// finished loading, `DateFormat` may throw. Prefer awaiting
+  /// [ensureInitialized] once at startup to avoid that entirely.
   static void initialize() {
-    initializeDateFormatting('id_ID', null);
+    if (_initialized || _initializing != null) return;
+    _initializing = initializeDateFormatting('id_ID', null).then((_) {
+      _initialized = true;
+    });
   }
 
   /// Formats the date to a short Indonesian format (e.g., `26/06/2025`).
@@ -87,15 +122,14 @@ extension IndonesianDate on DateTime {
     return DateFormat('HH:mm:ss', 'id_ID').format(this);
   }
 
-  /// Formats the date for a database (e.g., `2025-06-26`).
+  /// Formats the date for a database (e.g., `2025-06-26`). Locale-independent.
   String toIsoDate() {
-    initialize();
     return DateFormat('yyyy-MM-dd').format(this);
   }
 
   /// Formats the full date and time for a database (e.g., `2025-06-26 14:30:45`).
+  /// Locale-independent.
   String toDbDateTimeFormat() {
-    initialize();
     return DateFormat('yyyy-MM-dd HH:mm:ss').format(this);
   }
 }

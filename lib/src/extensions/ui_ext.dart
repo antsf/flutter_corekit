@@ -236,6 +236,24 @@ extension BuildContextExtension on BuildContext {
 
   /// Checks if the device has a medium pixel density.
   bool get isMediumDensity => pixelRatio >= 1.5 && pixelRatio < 2.0;
+
+  // Brightness
+
+  /// The current theme [Brightness].
+  Brightness get brightness => theme.brightness;
+
+  /// Whether the current theme [Brightness] is [Brightness.light].
+  bool get isLight => brightness == Brightness.light;
+
+  /// Whether the current theme [Brightness] is [Brightness.dark].
+  bool get isDark => !isLight;
+
+  /// Black in light mode, white in dark mode — a color that stays legible
+  /// against the theme's default background regardless of brightness.
+  Color get adaptiveColor => isDark ? Colors.white : Colors.black;
+
+  /// The inverse of [adaptiveColor]: white in light mode, black in dark mode.
+  Color get reversedAdaptiveColor => isDark ? Colors.black : Colors.white;
 }
 
 /// --- Num Extensions ---

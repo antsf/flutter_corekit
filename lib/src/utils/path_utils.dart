@@ -5,8 +5,9 @@ class PathUtils {
   /// Example: `buildUrl('https://api.example.com/', '/users')` →
   /// `https://api.example.com/users` (no double slash, no missing slash).
   static String buildUrl(String baseUrl, String path) {
-    final normalizedBase =
-        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final normalizedBase = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return '$normalizedBase$normalizedPath';
   }

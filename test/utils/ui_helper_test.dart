@@ -37,8 +37,7 @@ void main() {
     group('spacing', () {
       testWidgets('returns correct width when only width is provided',
           (tester) async {
-        final spacingWidget =
-            UiHelper.spacing(width: 2.5) as SizedBox;
+        final spacingWidget = UiHelper.spacing(width: 2.5) as SizedBox;
         expect(spacingWidget.width, kPadding * 2.5);
         expect(spacingWidget.height, 0);
       });
@@ -80,8 +79,7 @@ void main() {
     testWidgets('insetOn returns EdgeInsets.only for provided sides only',
         (tester) async {
       await withScreenUtil(tester, () {
-        final insets =
-            UiHelper.insetOn(left: 1, bottom: 2) as EdgeInsets;
+        final insets = UiHelper.insetOn(left: 1, bottom: 2) as EdgeInsets;
         expect(insets.left, (kPadding * 1).w);
         expect(insets.bottom, (kPadding * 2).h);
         expect(insets.right, 0.0);
@@ -93,8 +91,7 @@ void main() {
         (tester) async {
       await withScreenUtil(tester, () {
         final insets =
-            UiHelper.insetSymmetric(horizontal: 1, vertical: 0.5)
-                as EdgeInsets;
+            UiHelper.insetSymmetric(horizontal: 1, vertical: 0.5) as EdgeInsets;
         expect(insets.horizontal, (kPadding * 1).w * 2);
         expect(insets.vertical, (kPadding * 0.5).h * 2);
       });

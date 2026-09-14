@@ -189,8 +189,7 @@ void main() {
       test('formatPhoneNumber handles non-digit characters', () {
         expect('+62 812-3456-7890'.formatPhoneNumber(), '62 812 3456 7890');
       });
-      test('formatPhoneNumber returns null for a too-short partial number',
-          () {
+      test('formatPhoneNumber returns null for a too-short partial number', () {
         expect('081234567'.formatPhoneNumber(), isNull);
       });
       test('formatPhoneNumber handles very long digits', () {

@@ -12,7 +12,11 @@ A comprehensive Flutter core package providing theme management, network handlin
 - **Theme Management** — light/dark mode with persistence, Material 3, custom color schemes, responsive typography (Google Fonts Inter)
 - **Network Layer** — Dio-based HTTP client with automatic retry (exponential backoff), token refresh, connectivity pre-flight, structured error hierarchy
 - **Secure Storage** — flutter_secure_storage wrapper with box namespacing, type-safe API, and `Map<String, dynamic>` support
-- **Extensions** — 17+ extension files for `DateTime`, `num`, `String`, `BuildContext`, navigation, dialogs, UI layout, streams, and more
+- **Extensions** — 20+ extension files for `DateTime`, `num`, `String`, `Color`, `Uri`, `BuildContext`, navigation, dialogs, UI layout, streams, and more
+- **Widgets** — `Tappable` (ripple/opacity/scale tap feedback) and `AnimatedCounter`
+- **Form Validation** — dependency-free `FormInput<T>` pattern with ready-made validators (email, password, username, OTP, Indonesian phone)
+- **App Flavors** — typed per-environment config resolver (`AppFlavor`/`AppFlavorEnv`)
+- **BlurHash** — pure-Dart encode/decode, no image-decoding dependency
 - **Result Type** — lightweight `Result<T, Failure>` with `Success`/`Error`, `when`/`map`, and a `Failure` hierarchy for clean, try-catch-free error handling
 - **Indonesian Locale** — built-in Rupiah formatting, Indonesian date formats, phone number utilities
 
@@ -228,6 +232,54 @@ result.when(
 final name = result.map((user) => user.name);
 ```
 
+### New Utilities (Unreleased)
+
+```dart
+// Hex color <-> Color
+final c = '#FF5733'.toColor();      // Color, null if invalid
+final hex = c!.toHex();             // '#FFFF5733'
+
+// Bare-host URI -> https://
+Uri.parse('example.com').withScheme; // https://example.com
+
+// Secure random UUID v4
+final id = uuid.v4();
+
+// Relative time
+DateTime.now().subtract(const Duration(minutes: 5)).timeAgo(); // '5 minutes ago'
+
+// Tap feedback + animated counter widgets
+Tappable(
+  feedback: TappableFeedback.scale,
+  onTap: () {},
+  child: const Card(child: Text('Press me')),
+);
+AnimatedCounter(count: likeCount, builder: (context, value) => Text('$value'));
+
+// Debounce
+final debouncer = Debouncer(milliseconds: 300);
+onChanged: (q) => debouncer.run(() => search(q));
+
+// Duration shorthand
+await Future.delayed(300.ms);
+
+// Dependency-free form validation
+final email = EmailInput.dirty('not-an-email');
+email.isValid; // false
+email.error;   // 'Email is not valid'
+
+// Per-flavor config
+final flavor = AppFlavor(
+  env: AppFlavorEnv.production,
+  values: {'baseUrl': 'https://api.example.com'},
+);
+final baseUrl = flavor.require<String>('baseUrl');
+
+// BlurHash (pure-Dart, no image-decoding dependency)
+final hashString = BlurHash.encode(rgbaPixels, width: 32, height: 32);
+final decodedPixels = BlurHash.decode(hashString, width: 32, height: 32);
+```
+
 ## API Reference
 
 ### Error model
@@ -272,6 +324,8 @@ non-idempotent request, pass `Options(extra: {'retry': true})`.
 | `google_fonts` | Inter font family (internal; not re-exported) |
 | `intl` | Locale-aware formatting (internal; not re-exported) |
 | `logger` | Structured logging |
+| `uuid` | Secure random UUID generation (`uid.dart`) |
+| `timeago` | Relative-time formatting (`TimeAgoExt`) |
 
 ## Contributing
 

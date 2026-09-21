@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## Unreleased
+
+### Added
+- `ColorHexExt`/`ColorToHexExt` — hex string ↔ `Color` conversion.
+- `UriExt.withScheme` — prepends `https://` to a bare-host URI.
+- `uid.dart` — shared `uuid` `UuidGenerator` (`.v4()`) backed by `Random.secure()`.
+- `TimeAgoExt.timeAgo`/`timeAgoShort` — relative-time formatting via `timeago`.
+- `Tappable` widget — ripple/opacity/scale/none tap-feedback wrapper.
+- `AnimatedCounter` widget — animates an `int` between successive values.
+- `Debouncer`, `DebounceFunction.debounce()` — callback debouncing.
+- `NumDurationExt` — `200.ms`, `3.seconds`, `1.5.days` shorthand `Duration` getters.
+- `UpdateListExt.updateWith` — find-and-update/insert/delete on a `List<T>`.
+- `BuildContext.isLight`/`isDark`/`adaptiveColor`/`reversedAdaptiveColor`/`customAdaptiveColor`.
+- `logE`/`logW`/`logI`/`logD` — general app-level logging on top of `logger`.
+- `FormInput<T>`/`FormValidation` — dependency-free formz-style field validation, plus ready-made validators: `EmailInput`, `PasswordInput`, `UsernameInput`, `OtpInput`, `RequiredInput`, `IndonesianPhoneInput`.
+- `AppFlavorEnv`/`AppFlavor` — typed per-flavor config resolver (`get<T>`/`require<T>`).
+- `BlurHash` — pure-Dart encode/decode, verified against the reference `woltapp/blurhash` implementation.
+- New dependencies: `uuid`, `timeago` (both zero-cost — only pulled in by the extensions/util above).
+
 ## 3.0.0 — 2026-06-21
 
 ### Breaking Changes — identifier renames

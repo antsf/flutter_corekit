@@ -42,6 +42,9 @@ export 'src/validation/validation.dart';
 // Extensions
 export 'src/extensions/extensions.dart';
 
+// Widgets
+export 'src/widgets/widgets.dart';
+
 // External packages re-exported because their types appear in this package's
 // public API (or are needed to use it):
 //  - dio: DioClient takes Options/CancelToken/ProgressCallback, returns types

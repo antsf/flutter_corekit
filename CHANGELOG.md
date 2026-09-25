@@ -6,6 +6,27 @@ All notable changes to this project will be documented in this file.
 
 ## 3.1.0 — 2026-09-25
 
+### Changed (behavior — review these before upgrading)
+- `String.formatPhoneNumber()` now returns `null` for input that doesn't
+  normalize to a valid Indonesian number (was: silently echoed the raw,
+  unformatted digits back). Any caller that pattern-matched on "non-null but
+  unformatted" output will now get `null` instead — check call sites that
+  don't already handle a `null` result.
+- `PathUtils.replaceParams()` now throws `ArgumentError` if the resulting
+  path still contains an unresolved `:key`/`{key}` placeholder (was:
+  silently left the placeholder in the string, so a missing required param
+  could reach the network layer verbatim). Also now URL-encodes each
+  substituted value. Callers relying on the old silent/lenient behavior for
+  optional params should pass an explicit value instead of omitting the key.
+- `ThemeProvider.toggleTheme()`/`setDarkMode()` now rethrow if persisting
+  the preference fails (was: the failure was swallowed after the in-memory
+  state had already changed). The in-memory/UI state is still updated
+  optimistically before the write, so UI and state stay in sync either way
+  — but callers should now wrap these calls if they want to catch and
+  handle persistence failures explicitly. `loadThemeMode()`, by contrast,
+  still catches its own read failures internally and falls back to light
+  mode (unchanged, non-throwing).
+
 ### Added
 - `ColorHexExt`/`ColorToHexExt` — hex string ↔ `Color` conversion.
 - `UriExt.withScheme` — prepends `https://` to a bare-host URI.

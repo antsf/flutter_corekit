@@ -1,6 +1,6 @@
 name: flutter_corekit
 description: A comprehensive Flutter core package providing theme management, network handling, secure storage, and UI extensions for Indonesian Flutter apps.
-version: 3.0.0
+version: 3.1.0
 homepage: https://github.com/antsf/flutter_corekit
 repository: https://github.com/antsf/flutter_corekit
 issue_tracker: https://github.com/antsf/flutter_corekit/issues

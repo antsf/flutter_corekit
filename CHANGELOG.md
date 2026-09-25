@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## Unreleased
+## 3.1.0 — 2026-09-25
 
 ### Added
 - `ColorHexExt`/`ColorToHexExt` — hex string ↔ `Color` conversion.

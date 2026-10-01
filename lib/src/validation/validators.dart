@@ -49,6 +49,13 @@ class PasswordInput extends FormInput<String> {
   final int maxLength;
 
   @override
+  List<Object?> get validationPolicy => [minLength, maxLength];
+
+  @override
+  String toString() =>
+      '$runtimeType(value: <redacted>, isPure: $isPure, isValid: $isValid)';
+
+  @override
   String? validator(String value) {
     if (value.isEmpty) return 'This field is required';
     if (value.length < minLength || value.length > maxLength) {
@@ -97,6 +104,13 @@ class OtpInput extends FormInput<String> {
 
   /// The exact number of digits required.
   final int length;
+
+  @override
+  List<Object?> get validationPolicy => [length];
+
+  @override
+  String toString() =>
+      '$runtimeType(value: <redacted>, isPure: $isPure, isValid: $isValid)';
 
   @override
   String? validator(String value) {

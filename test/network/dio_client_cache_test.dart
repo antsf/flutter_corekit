@@ -30,6 +30,7 @@ void main() {
 
     when(() => dio.options).thenReturn(baseOptions);
     when(() => dio.interceptors).thenReturn(interceptors);
+    when(() => dio.transformer).thenReturn(FusedTransformer());
     when(() => conn.hasConnection()).thenAnswer((_) async => true);
     when(() => dio.get(
           any(),

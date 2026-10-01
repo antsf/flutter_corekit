@@ -60,38 +60,25 @@ import 'src/services/connectivity_service.dart';
 ///
 /// Accessing services before initialization will result in a [LateInitializationError].
 class FlutterCorekit {
-  /// A private flag to track whether [initialize] has been called.
-  /// This prevents redundant initializations.
   static bool _isInitialized = false;
+  static int _lifecycleGeneration = 0;
+  static Future<void>? _initialization;
+  static _CoreServices _services = _CoreServices();
+  static DioClient? _initializingClient;
 
-  /// Provides access to the configured [DioClient] instance for making network requests.
-  ///
-  /// Available after [initialize] has been successfully called.
-  /// Throws a [LateInitializationError] if accessed before initialization.
-  static late final DioClient dioClient;
+  /// Available after initialization completes. Access before initialization,
+  /// after failure, and after reset throws a [LateInitializationError].
+  static DioClient get dioClient => _services.dioClient;
 
-  /// Provides access to the [SecureStorage] instance for secure data persistence.
-  ///
-  /// Available after [initialize] has been successfully called.
-  /// Throws a [LateInitializationError] if accessed before initialization.
-  static late final SecureStorage secureStorage;
+  /// Available after initialization completes. Access before initialization,
+  /// after failure, and after reset throws a [LateInitializationError].
+  static SecureStorage get secureStorage => _services.secureStorage;
 
-  /// Initializes core non-UI services of the Flutter Core package.
-  ///
-  /// This method sets up:
-  /// - [SecureStorage]: For secure local data storage.
-  /// - [DioClient]: For network communication, configured with base URL, timeouts, and logging.
-  /// - [ConnectivityService]: To monitor network connectivity status.
-  ///
-  /// This method **must be called once** at application startup, typically in `main()`,
-  /// before `runApp()`.
-  ///
-  /// Parameters:
-  /// - [baseUrl]: The base URL for the [DioClient] (required).
-  /// - [connectTimeout]: Connection timeout for network requests in milliseconds (default: 30000ms).
-  /// - [receiveTimeout]: Receive timeout for network requests in milliseconds (default: 30000ms).
-  /// - [enableLogging]: Enables network request and response logging via [Logger] (default: true).
-  /// If called more than once, subsequent calls will be ignored and a debug message will be printed.
+  /// Initializes storage, networking and the initial connectivity check.
+  /// Concurrent callers share one Future and the first caller's options win;
+  /// initialized calls are no-ops. Failures publish no partial services and
+  /// permit retry. Reset invalidates in-flight work with [StateError], never
+  /// publishing stale services. Timeouts are in milliseconds.
   static Future<void> initialize({
     required String baseUrl,
     int connectTimeout = 30000,
@@ -99,64 +86,103 @@ class FlutterCorekit {
     bool enableLogging = true,
     Interceptor? interceptor,
     Future<String?> Function(Dio)? refreshToken,
-  }) async {
-    if (_isInitialized) {
-      debugPrint(
-          "FlutterCorekit.initialize() called multiple times. Ignoring subsequent calls.");
-      return;
-    }
-
-    // 1. Initialize secure storage.
-    secureStorage = SecureStorage();
-    await secureStorage.init();
-
-    // 2. Initialize the network client (Dio).
-    dioClient = DioClient(
+  }) {
+    if (_isInitialized) return Future<void>.value();
+    final active = _initialization;
+    if (active != null) return active;
+    final pending = _initializeServices(
+      generation: _lifecycleGeneration,
       baseUrl: baseUrl,
-      connectTimeoutMs: connectTimeout,
-      receiveTimeoutMs: receiveTimeout,
+      connectTimeout: connectTimeout,
+      receiveTimeout: receiveTimeout,
       enableLogging: enableLogging,
-      logger: Logger(
-        printer: PrettyPrinter(
-          methodCount: 0, // Hides method stack trace in logs
-          colors: true, // Enables colored logs
-          printEmojis: true, // Enables emojis in logs
-          dateTimeFormat:
-              DateTimeFormat.onlyTimeAndSinceStart, // Log time format
-        ),
-      ),
       interceptor: interceptor,
-      refreshToken: refreshToken, // <-- Pass refreshToken to DioClient
+      refreshToken: refreshToken,
     );
-
-    // 3. Initialize Connectivity Service
-    // This service monitors the device's network connection status.
-    // It's a singleton and can be initialized here to check initial connection state.
-    await ConnectivityService.instance.hasConnection();
-
-    _isInitialized = true;
-    debugPrint("FlutterCorekit initialized successfully.");
-  }
-
-  /// Resets the initialization flag of FlutterCorekit.
-  ///
-  /// Primarily for testing, where services may need re-initialization between
-  /// tests.
-  ///
-  /// **Note:** the `late final` static fields (`dioClient`, `secureStorage`)
-  /// cannot be reset without restarting the app or a proper DI container, so
-  /// this only resets the `_isInitialized` flag.
-  static Future<void> resetInitialization() async {
-    if (!_isInitialized) {
-      debugPrint(
-          "FlutterCorekit.resetInitialization() called but core is not initialized.");
-      return;
+    _initialization = pending;
+    void clearPending() {
+      if (identical(_initialization, pending)) _initialization = null;
     }
 
-    _isInitialized = false;
-    debugPrint(
-        "FlutterCorekit cleaned up. Ready for re-initialization if needed.");
+    pending.then<void>((_) => clearPending(),
+        onError: (Object error, StackTrace stack) => clearPending());
+    return pending;
   }
+
+  static Future<void> _initializeServices({
+    required int generation,
+    required String baseUrl,
+    required int connectTimeout,
+    required int receiveTimeout,
+    required bool enableLogging,
+    required Interceptor? interceptor,
+    required Future<String?> Function(Dio)? refreshToken,
+  }) async {
+    final storage = SecureStorage();
+    DioClient? client;
+    try {
+      await storage.init();
+      _checkGeneration(generation);
+      client = DioClient(
+        baseUrl: baseUrl,
+        connectTimeoutMs: connectTimeout,
+        receiveTimeoutMs: receiveTimeout,
+        enableLogging: enableLogging,
+        logger: Logger(
+            printer: PrettyPrinter(
+          methodCount: 0,
+          colors: true,
+          printEmojis: true,
+          dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+        )),
+        interceptor: interceptor,
+        refreshToken: refreshToken,
+      );
+      _initializingClient = client;
+      await ConnectivityService.instance.hasConnection();
+      _checkGeneration(generation);
+      _services = _CoreServices.ready(client, storage);
+      _isInitialized = true;
+    } catch (_) {
+      client?.clearAuthToken();
+      client?.dioInstance.close(force: true);
+      rethrow;
+    } finally {
+      if (identical(_initializingClient, client)) _initializingClient = null;
+    }
+  }
+
+  static void _checkGeneration(int generation) {
+    if (generation != _lifecycleGeneration) {
+      throw StateError('FlutterCorekit initialization invalidated by reset.');
+    }
+  }
+
+  /// Invalidates pending initialization, clears auth/cache and closes the
+  /// owned Dio client. Services become unavailable until initialize completes
+  /// again. A stale initialize Future fails with [StateError] when its pending
+  /// dependency finishes; it cannot overwrite the replacement lifecycle.
+  /// Persisted user data and shared theme services are not cleared.
+  static Future<void> resetInitialization() async {
+    final published = _isInitialized ? _services.dioClient : null;
+    final initializing = _initializingClient;
+    _lifecycleGeneration++;
+    _initialization = null;
+    _initializingClient = null;
+    _services = _CoreServices();
+    _isInitialized = false;
+    for (final client in {published, initializing}.whereType<DioClient>()) {
+      client.clearAuthToken();
+      client.dioInstance.close(force: true);
+    }
+  }
+}
+
+class _CoreServices {
+  _CoreServices();
+  _CoreServices.ready(this.dioClient, this.secureStorage);
+  late final DioClient dioClient;
+  late final SecureStorage secureStorage;
 }
 
 /// A wrapper widget that initializes [ScreenUtil] for responsive UI development.

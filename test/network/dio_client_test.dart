@@ -50,6 +50,7 @@ void main() {
     );
     when(() => mockDio.options).thenReturn(baseOptions);
     when(() => mockDio.interceptors).thenReturn(interceptors);
+    when(() => mockDio.transformer).thenReturn(FusedTransformer());
 
     dioClient = DioClient(
       baseUrl: baseUrl,
@@ -122,7 +123,8 @@ void main() {
 
       expect(result.isSuccessful, isTrue);
       expect(result.data, testResponseData);
-      verify(() => mockDio.get(testPath)).called(1);
+      verify(() => mockDio.get(testPath, options: any(named: 'options')))
+          .called(1);
     });
 
     test('GET with fromJson maps response data', () async {
@@ -158,7 +160,8 @@ void main() {
 
       expect(result.isSuccessful, isTrue);
       expect(result.data, testResponseData);
-      verify(() => mockDio.post(testPath, data: testBody)).called(1);
+      verify(() => mockDio.post(testPath,
+          data: testBody, options: any(named: 'options'))).called(1);
     });
 
     test('PUT returns ApiResponse.success', () async {
@@ -176,7 +179,8 @@ void main() {
 
       expect(result.isSuccessful, isTrue);
       expect(result.data, testResponseData);
-      verify(() => mockDio.put(testPath, data: testBody)).called(1);
+      verify(() => mockDio.put(testPath,
+          data: testBody, options: any(named: 'options'))).called(1);
     });
 
     test('DELETE returns ApiResponse.success', () async {
@@ -192,7 +196,8 @@ void main() {
 
       expect(result.isSuccessful, isTrue);
       expect(result.data, testResponseData);
-      verify(() => mockDio.delete(testPath, data: testBody)).called(1);
+      verify(() => mockDio.delete(testPath,
+          data: testBody, options: any(named: 'options'))).called(1);
     });
 
     test('PATCH returns ApiResponse.success', () async {
@@ -210,7 +215,8 @@ void main() {
 
       expect(result.isSuccessful, isTrue);
       expect(result.data, testResponseData);
-      verify(() => mockDio.patch(testPath, data: testBody)).called(1);
+      verify(() => mockDio.patch(testPath,
+          data: testBody, options: any(named: 'options'))).called(1);
     });
 
     test('null response body returns ApiResponse.success with null data',
@@ -271,7 +277,8 @@ void main() {
       expect(second.isSuccessful, isTrue);
       expect(second.data, responseData);
       // Only one real network call
-      verify(() => mockDio.get(testPath)).called(1);
+      verify(() => mockDio.get(testPath, options: any(named: 'options')))
+          .called(1);
     });
 
     test('forceRefresh bypasses cache', () async {
@@ -287,7 +294,8 @@ void main() {
       await dioClient.get(testPath,
           cacheTtl: const Duration(minutes: 5), forceRefresh: true);
 
-      verify(() => mockDio.get(testPath)).called(2);
+      verify(() => mockDio.get(testPath, options: any(named: 'options')))
+          .called(2);
     });
 
     test('clearCache removes all entries', () async {
@@ -303,7 +311,8 @@ void main() {
       dioClient.clearCache();
       await dioClient.get(testPath, cacheTtl: const Duration(minutes: 5));
 
-      verify(() => mockDio.get(testPath)).called(2);
+      verify(() => mockDio.get(testPath, options: any(named: 'options')))
+          .called(2);
     });
 
     test('invalidateCache removes specific entry', () async {
@@ -319,7 +328,8 @@ void main() {
       dioClient.invalidateCache(testPath);
       await dioClient.get(testPath, cacheTtl: const Duration(minutes: 5));
 
-      verify(() => mockDio.get(testPath)).called(2);
+      verify(() => mockDio.get(testPath, options: any(named: 'options')))
+          .called(2);
     });
   });
 
@@ -529,7 +539,8 @@ void main() {
 
       await dioClient.download(urlPath, savePath: savePath);
 
-      verify(() => mockDio.download(urlPath, savePath)).called(1);
+      verify(() => mockDio.download(urlPath, savePath,
+          options: any(named: 'options'))).called(1);
     });
 
     test('throws NetworkException on download failure', () async {

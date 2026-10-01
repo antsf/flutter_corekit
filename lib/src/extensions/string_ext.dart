@@ -83,8 +83,7 @@ extension StringExt on String {
       return '${formatted.substring(0, 2)}$sep'
           '${formatted.substring(2, 5)}$sep'
           '${formatted.substring(5, 9)}$sep'
-          '${formatted.substring(9, 13)}'
-          '${formatted.length > 13 ? formatted.substring(13) : ''}';
+          '${formatted.substring(9)}';
     } else {
       return '${formatted.substring(0, 2)}$sep'
           '${formatted.substring(2, 5)}$sep'

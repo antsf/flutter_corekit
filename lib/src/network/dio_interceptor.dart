@@ -7,6 +7,7 @@ library;
 
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart'; // Assuming 'logger' package is used
+import 'network_logging.dart';
 
 /// Header names whose values are secrets and must never be logged verbatim.
 const _sensitiveHeaders = <String>{
@@ -22,13 +23,14 @@ const _sensitiveHeaders = <String>{
 String redactedHeaderValue(String key, Object? value) =>
     _sensitiveHeaders.contains(key.toLowerCase()) ? '<redacted>' : '$value';
 
-/// Stringifies a request/response body, truncating long payloads (which often
-/// contain PII) to [maxLength] characters.
-String _truncateBody(Object? data, [int maxLength = 1000]) {
-  final text = data.toString();
-  return text.length > maxLength
-      ? '${text.substring(0, maxLength)}… (${text.length} chars total)'
-      : text;
+/// Payload metadata only: truncation cannot sanitize arbitrary credentials.
+String _bodySummary(Object? data) {
+  if (data is Map) return '<map: ${data.length} entries; values omitted>';
+  if (data is List) return '<list: ${data.length} items; values omitted>';
+  if (data is FormData) {
+    return '<multipart: ${data.fields.length} fields, ${data.files.length} files; values omitted>';
+  }
+  return '<payload omitted>';
 }
 
 /// A [Dio] interceptor that logs HTTP requests, responses, and errors.
@@ -68,44 +70,43 @@ class DioLoggingInterceptor extends Interceptor {
 
   /// Called when a request is about to be sent.
   ///
-  /// Logs the request method, URI, headers, and data if logging is enabled.
+  /// Logs metadata only; URIs, headers and contents may contain credentials.
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (enableLogging && logger != null) {
       final logMessage = StringBuffer();
       logMessage.writeln('--- Dio Request ---');
       logMessage.writeln('Method: ${options.method}');
-      logMessage.writeln('URI: ${options.uri}');
+      logMessage.writeln('URI: <omitted>');
       if (options.headers.isNotEmpty) {
-        logMessage.writeln('Headers:');
-        options.headers.forEach((key, value) =>
-            logMessage.writeln('  $key: ${redactedHeaderValue(key, value)}'));
+        logMessage
+            .writeln('Headers: <${options.headers.length} entries; omitted>');
       }
       if (options.data != null) {
-        logMessage.writeln('Data: ${_truncateBody(options.data)}');
+        logMessage.writeln('Data: ${_bodySummary(options.data)}');
       }
       logMessage.write('-------------------');
-      logger!.i(logMessage.toString());
+      logNetworkMetadata(logger, Level.info, logMessage.toString());
     }
     super.onRequest(options, handler); // Ensure to call super or handler.next()
   }
 
   /// Called when a response is received.
   ///
-  /// Logs the response status code, status message, and data if logging is enabled.
+  /// Logs status code and payload metadata, not server-controlled text.
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (enableLogging && logger != null) {
       final logMessage = StringBuffer();
       logMessage.writeln('--- Dio Response ---');
-      logMessage.writeln('URI: ${response.requestOptions.uri}');
+      logMessage.writeln('URI: <omitted>');
       logMessage.writeln('Status Code: ${response.statusCode}');
-      logMessage.writeln('Status Message: ${response.statusMessage}');
+
       if (response.data != null) {
-        logMessage.writeln('Data: ${_truncateBody(response.data)}');
+        logMessage.writeln('Data: ${_bodySummary(response.data)}');
       }
       logMessage.write('--------------------');
-      logger!.i(logMessage.toString());
+      logNetworkMetadata(logger, Level.info, logMessage.toString());
     }
     super.onResponse(
         response, handler); // Ensure to call super or handler.next()
@@ -113,26 +114,25 @@ class DioLoggingInterceptor extends Interceptor {
 
   /// Called when an error occurs during a request or response.
   ///
-  /// Logs the error type, message, and response details (if available) if logging is enabled.
+  /// Logs error type, status and payload metadata, never raw exception details.
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (enableLogging && logger != null) {
       final logMessage = StringBuffer();
       logMessage.writeln('--- Dio Error ---');
-      logMessage.writeln('URI: ${err.requestOptions.uri}');
+      logMessage.writeln('URI: <omitted>');
       logMessage.writeln('Error Type: ${err.type}');
-      logMessage.writeln('Message: ${err.message}');
+
       if (err.response != null) {
         logMessage.writeln('Status Code: ${err.response!.statusCode}');
-        logMessage.writeln('Status Message: ${err.response!.statusMessage}');
+
         if (err.response!.data != null) {
           logMessage
-              .writeln('Response Data: ${_truncateBody(err.response!.data)}');
+              .writeln('Response Data: ${_bodySummary(err.response!.data)}');
         }
       }
       logMessage.write('-----------------');
-      logger!.e(logMessage.toString(),
-          error: err.error, stackTrace: err.stackTrace);
+      logNetworkMetadata(logger, Level.error, logMessage.toString());
     }
     super.onError(err, handler); // Ensure to call super or handler.next()
   }

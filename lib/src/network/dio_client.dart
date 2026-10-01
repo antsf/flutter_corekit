@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
+import 'network_logging.dart';
 
 import '../services/connectivity_service.dart';
 import 'api_response.dart';
@@ -68,6 +72,11 @@ class DioClient {
   /// 401s firing multiple simultaneous refreshes, which (with single-use /
   /// rotating refresh tokens) invalidate each other and log the user out.
   Future<String?>? _ongoingRefresh;
+  int _sessionGeneration = 0;
+  bool _hasCustomInterceptors = false;
+  final Set<Interceptor> _cacheSafeInterceptors = {};
+  Transformer? _cacheTransformer;
+  int _transformerEpoch = 0;
 
   /// Creates a [DioClient].
   ///
@@ -109,6 +118,7 @@ class DioClient {
       interceptor: interceptor,
       refreshTokenCallback: refreshToken,
     );
+    _cacheSafeInterceptors.addAll(_dio.interceptors);
   }
 
   // --- HTTP Methods ---
@@ -125,8 +135,16 @@ class DioClient {
     Duration? cacheTtl,
     bool forceRefresh = false,
   }) {
+    if (cancelToken?.isCancelled ?? false) {
+      return Future.value(ApiResponse.failure(
+          NetworkException.fromDioException(cancelToken!.cancelError!)));
+    }
+    final generation = _sessionGeneration;
+    final key = cacheTtl != null
+        ? _cacheKey(path, queryParameters, options: options)
+        : null;
     if (cacheTtl != null && !forceRefresh) {
-      final entry = _readCacheEntry(_cacheKey(path, queryParameters));
+      final entry = key == null ? null : _readCacheEntry(key);
       if (entry != null) {
         return Future.value(_parseResponse<T>(entry.rawData, fromJson));
       }
@@ -134,12 +152,16 @@ class DioClient {
     return _execute<T>(
       () => _dio.get(path,
           queryParameters: queryParameters,
-          options: options,
+          options: _sessionOptions(options),
           cancelToken: cancelToken,
           onReceiveProgress: onReceiveProgress),
       fromJson: fromJson,
-      cacheKey: cacheTtl != null ? _cacheKey(path, queryParameters) : null,
+      cacheKey: key,
       cacheTtl: cacheTtl,
+      cacheGeneration: generation,
+      canCache: () =>
+          key != null &&
+          _cacheKey(path, queryParameters, options: options) == key,
     );
   }
 
@@ -158,7 +180,7 @@ class DioClient {
         () => _dio.post(path,
             data: body,
             queryParameters: queryParameters,
-            options: options,
+            options: _sessionOptions(options),
             cancelToken: cancelToken,
             onSendProgress: onSendProgress,
             onReceiveProgress: onReceiveProgress),
@@ -180,7 +202,7 @@ class DioClient {
         () => _dio.put(path,
             data: body,
             queryParameters: queryParameters,
-            options: options,
+            options: _sessionOptions(options),
             cancelToken: cancelToken,
             onSendProgress: onSendProgress,
             onReceiveProgress: onReceiveProgress),
@@ -200,7 +222,7 @@ class DioClient {
         () => _dio.delete(path,
             data: body,
             queryParameters: queryParameters,
-            options: options,
+            options: _sessionOptions(options),
             cancelToken: cancelToken),
         fromJson: fromJson,
       );
@@ -220,7 +242,7 @@ class DioClient {
         () => _dio.patch(path,
             data: body,
             queryParameters: queryParameters,
-            options: options,
+            options: _sessionOptions(options),
             cancelToken: cancelToken,
             onSendProgress: onSendProgress,
             onReceiveProgress: onReceiveProgress),
@@ -243,13 +265,14 @@ class DioClient {
     try {
       await _dio.download(urlPath, savePath,
           queryParameters: queryParameters,
-          options: options,
+          options: _sessionOptions(options),
           cancelToken: cancelToken,
           onReceiveProgress: onReceiveProgress);
     } on DioException catch (e) {
       throw NetworkException.fromDioException(e);
-    } catch (e, s) {
-      _logger?.e('DioClient: download error', error: e, stackTrace: s);
+    } catch (_) {
+      logNetworkMetadata(
+          _logger, Level.error, 'DioClient: download error; details omitted.');
       throw UnknownNetworkException(
           dioException:
               DioException(requestOptions: RequestOptions(path: urlPath)));
@@ -262,21 +285,43 @@ class DioClient {
   void clearCache() => _cache.clear();
 
   /// Removes the cached response for [path] + optional [queryParameters].
-  void invalidateCache(String path, {Map<String, dynamic>? queryParameters}) =>
-      _cache.remove(_cacheKey(path, queryParameters));
+  void invalidateCache(String path, {Map<String, dynamic>? queryParameters}) {
+    // Conservatively invalidate all context variants in this bounded cache.
+    clearCache();
+  }
 
   // --- Token & headers ---
 
-  void setAuthToken(String token) =>
-      _dio.options.headers['Authorization'] = 'Bearer $token';
+  void setAuthToken(String token) {
+    _invalidateSession();
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
 
-  void clearAuthToken() => _dio.options.headers.remove('Authorization');
+  void clearAuthToken() {
+    _invalidateSession();
+    _dio.options.headers.remove('Authorization');
+  }
 
-  void addHeader(String key, String value) => _dio.options.headers[key] = value;
+  void addHeader(String key, String value) {
+    _invalidateSession();
+    _dio.options.headers[key] = value;
+  }
 
-  void removeHeader(String key) => _dio.options.headers.remove(key);
+  void removeHeader(String key) {
+    _invalidateSession();
+    _dio.options.headers.remove(key);
+  }
 
-  void clearHeaders() => _dio.options.headers.clear();
+  void clearHeaders() {
+    _invalidateSession();
+    _dio.options.headers.clear();
+  }
+
+  void _invalidateSession() {
+    _sessionGeneration++;
+    _ongoingRefresh = null;
+    clearCache();
+  }
 
   String? get authorizationHeader =>
       _dio.options.headers['Authorization'] as String?;
@@ -286,17 +331,43 @@ class DioClient {
 
   // --- Private ---
 
+  Options _sessionOptions(Options? options) {
+    // Capture before Dio queues onRequest, so an immediate logout/account
+    // switch cannot stamp old credentials as belonging to the new session.
+    return (options ?? Options()).copyWith(extra: {
+      ...?options?.extra,
+      '__corekit_session_generation': _sessionGeneration,
+      '__corekit_session_auth': authorizationHeader,
+      '__corekit_explicit_auth': options?.headers?.keys
+              .any((key) => key.toLowerCase() == 'authorization') ??
+          false,
+    });
+  }
+
   Future<ApiResponse<T>> _execute<T>(
     Future<Response<dynamic>> Function() request, {
     T Function(dynamic)? fromJson,
     String? cacheKey,
     Duration? cacheTtl,
+    int? cacheGeneration,
+    bool Function()? canCache,
   }) async {
+    final generation = _sessionGeneration;
     try {
       if (_checkConnectivityBeforeRequest) await _checkConnectivity();
+      if (generation != _sessionGeneration) {
+        throw _staleSessionError(RequestOptions(path: ''));
+      }
       final response = await request();
+      if (generation != _sessionGeneration) {
+        throw _staleSessionError(response.requestOptions);
+      }
       final rawData = response.data;
-      if (cacheKey != null && cacheTtl != null && rawData != null) {
+      if (cacheKey != null &&
+          cacheTtl != null &&
+          rawData != null &&
+          cacheGeneration == _sessionGeneration &&
+          (canCache?.call() ?? true)) {
         _writeCacheEntry(cacheKey, _CacheEntry(rawData, cacheTtl));
       }
       return _parseResponse<T>(rawData, fromJson);
@@ -304,8 +375,9 @@ class DioClient {
       return ApiResponse.failure(e);
     } on DioException catch (e) {
       return ApiResponse.failure(NetworkException.fromDioException(e));
-    } catch (e, s) {
-      _logger?.e('DioClient: unexpected error', error: e, stackTrace: s);
+    } catch (_) {
+      logNetworkMetadata(_logger, Level.error,
+          'DioClient: unexpected error; details omitted.');
       return ApiResponse.failure(UnknownNetworkException(
           dioException:
               DioException(requestOptions: RequestOptions(path: ''))));
@@ -318,8 +390,9 @@ class DioClient {
       if (rawData == null) return ApiResponse.success();
       final parsed = fromJson != null ? fromJson(rawData) : rawData as T?;
       return ApiResponse.success(parsed);
-    } catch (e, s) {
-      _logger?.e('DioClient: response parse error', error: e, stackTrace: s);
+    } catch (_) {
+      logNetworkMetadata(_logger, Level.error,
+          'DioClient: response parse error; details omitted.');
       return ApiResponse.failure(UnknownNetworkException(
           dioException:
               DioException(requestOptions: RequestOptions(path: ''))));
@@ -338,15 +411,72 @@ class DioClient {
     }
   }
 
-  String _cacheKey(String path, Map<String, dynamic>? query) {
-    // Scope every cache key to the current identity (auth token) so a cached
-    // response for one user can never be served to another after the token
-    // changes. The token itself is not stored — only its hash.
-    final authHash = _dio.options.headers['Authorization']?.hashCode ?? 0;
-    final keyBody = (query == null || query.isEmpty)
-        ? path
-        : '$path?${(query.entries.toList()..sort((a, b) => a.key.compareTo(b.key))).map((e) => '${e.key}=${e.value}').join('&')}';
-    return '$authHash|$keyBody';
+  String? _cacheKey(String path, Map<String, dynamic>? query,
+      {Options? options}) {
+    final transformer = _dio.transformer;
+    if (!identical(_cacheTransformer, transformer)) {
+      clearCache();
+      _cacheTransformer = transformer;
+      _transformerEpoch++;
+    }
+    // Exact built-in types only: subclasses/callbacks may close over mutable
+    // account or policy context. Function identity alone cannot partition it.
+    final safeTransformer = transformer.runtimeType == FusedTransformer ||
+        (transformer.runtimeType == SyncTransformer &&
+            transformer is SyncTransformer &&
+            identical(transformer.jsonDecodeCallback, jsonDecode) &&
+            identical(transformer.jsonEncodeCallback, jsonEncode));
+    if (!safeTransformer) {
+      clearCache();
+      _transformerEpoch++;
+      return null;
+    }
+    if (_hasCustomInterceptors ||
+        _dio.interceptors.any((i) => !_cacheSafeInterceptors.contains(i))) {
+      clearCache();
+      return null;
+    }
+    final request = (options ?? Options())
+        .compose(_dio.options, path, queryParameters: query);
+    // Decoder/encoder/status callbacks may close over identity or policy.
+    // Their behavior is not a serializable part of a safe cache key.
+    if (request.responseDecoder != null ||
+        request.requestEncoder != null ||
+        !identical(request.validateStatus, BaseOptions().validateStatus)) {
+      clearCache();
+      return null;
+    }
+    try {
+      // Exact private in-memory identity, not collision-prone hashCode.
+      // These keys are never exposed in logs or diagnostics.
+      return jsonEncode([
+        _sessionGeneration,
+        _transformerEpoch,
+        request.uri.toString(),
+        _canonical(request.headers),
+        _canonical(request.extra),
+        request.responseType.name,
+        request.contentType,
+        request.followRedirects,
+        request.maxRedirects,
+        request.receiveDataWhenStatusError,
+      ]);
+    } on Object {
+      return null; // Non-JSON context cannot be safely partitioned.
+    }
+  }
+
+  Object? _canonical(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return {
+        for (final k in value.keys.toList()..sort()) k: _canonical(value[k])
+      };
+    }
+    if (value is List) return value.map(_canonical).toList();
+    if (value == null || value is String || value is num || value is bool) {
+      return value;
+    }
+    throw const FormatException('Unpartitionable request context');
   }
 
   /// Reads a cache entry, applying LRU semantics: a valid hit is moved to
@@ -375,6 +505,19 @@ class DioClient {
     Interceptor? interceptor,
     required Future<String?> Function(Dio)? refreshTokenCallback,
   }) {
+    final defaultInterceptors = Interceptors();
+    _hasCustomInterceptors = interceptor != null ||
+        _dio.interceptors.any((i) => !defaultInterceptors.contains(i));
+    _dio.interceptors.add(InterceptorsWrapper(onRequest: (request, handler) {
+      request.extra.putIfAbsent(
+          '__corekit_session_generation', () => _sessionGeneration);
+      request.extra
+          .putIfAbsent('__corekit_session_auth', () => authorizationHeader);
+      if (!_isCurrentSession(request)) {
+        return handler.reject(_staleSessionError(request));
+      }
+      handler.next(request);
+    }));
     if (enableLogging && _logger != null) {
       _dio.interceptors
           .add(DioLoggingInterceptor(logger: _logger, enableLogging: true));
@@ -392,13 +535,40 @@ class DioClient {
           // still 401s, fall through instead of looping forever.
           final alreadyRetried =
               error.requestOptions.extra['__retried_after_refresh'] == true;
-          if (error.response?.statusCode == 401 && !alreadyRetried) {
-            _logger?.i('DioClient: 401 received. Attempting token refresh.');
+          final generation =
+              error.requestOptions.extra['__corekit_session_generation'];
+          final sessionAuth =
+              error.requestOptions.extra['__corekit_session_auth'];
+          final canRefresh = generation == _sessionGeneration &&
+              error.requestOptions.extra['__corekit_explicit_auth'] != true &&
+              error.requestOptions.headers['Authorization'] == sessionAuth;
+          if (error.response?.statusCode == 401 &&
+              !alreadyRetried &&
+              canRefresh) {
+            logNetworkMetadata(_logger, Level.info,
+                'DioClient: 401 received. Attempting token refresh.');
             try {
+              // A parallel refresh already rotated this managed session.
+              // Replay once with its current token; do not refresh again.
+              if (sessionAuth != authorizationHeader) {
+                final currentAuth = authorizationHeader;
+                if (currentAuth == null) return handler.next(error);
+                error.requestOptions.headers['Authorization'] = currentAuth;
+                error.requestOptions.extra['__retried_after_refresh'] = true;
+                return handler.resolve(await _dio.fetch(error.requestOptions));
+              }
               final newToken = await _refreshAuthToken(refreshTokenCallback);
+              if (generation != _sessionGeneration ||
+                  (sessionAuth != authorizationHeader &&
+                      authorizationHeader != 'Bearer $newToken')) {
+                return handler.next(error);
+              }
               if (newToken != null) {
-                setAuthToken(newToken);
-                _logger?.i('DioClient: Token refreshed. Retrying request.');
+                // Same session: do not invalidate concurrent refresh waiters.
+                _dio.options.headers['Authorization'] = 'Bearer $newToken';
+                clearCache();
+                logNetworkMetadata(_logger, Level.info,
+                    'DioClient: Token refreshed. Retrying request.');
                 error.requestOptions.headers['Authorization'] =
                     'Bearer $newToken';
                 error.requestOptions.extra['__retried_after_refresh'] = true;
@@ -407,12 +577,12 @@ class DioClient {
               // Refresh definitively failed to produce a token: the current
               // token is invalid, so drop it instead of leaving a stale
               // Authorization header on every subsequent request.
-              _logger?.w(
+              logNetworkMetadata(_logger, Level.warning,
                   'DioClient: Token refresh returned null. Clearing stale auth token.');
               clearAuthToken();
-            } catch (e, s) {
-              _logger?.e('DioClient: Token refresh failed.',
-                  error: e, stackTrace: s);
+            } catch (_) {
+              logNetworkMetadata(_logger, Level.error,
+                  'DioClient: Token refresh failed; details omitted.');
             }
           }
           return handler.next(error);
@@ -425,15 +595,32 @@ class DioClient {
       options: retryOptions,
       logger: _logger,
       enableLogging: enableLogging,
+      canRetry: _isCurrentSession,
     ));
   }
+
+  bool _isCurrentSession(RequestOptions request) =>
+      request.extra['__corekit_session_generation'] == _sessionGeneration;
+
+  DioException _staleSessionError(RequestOptions request) => DioException(
+        requestOptions: request,
+        type: DioExceptionType.cancel,
+        message: 'Session changed while request was in flight.',
+      );
 
   /// Runs [callback] to obtain a fresh token, coalescing concurrent callers
   /// onto a single in-flight refresh. The first 401 starts the refresh; any
   /// other 401s that arrive while it is running await the same result instead
   /// of starting their own.
   Future<String?> _refreshAuthToken(Future<String?> Function(Dio) callback) {
-    return _ongoingRefresh ??= () async {
+    final active = _ongoingRefresh;
+    if (active != null) return active;
+    final generation = _sessionGeneration;
+    final completer = Completer<String?>();
+    final pending = completer.future;
+    // Publish before invoking user code: even a synchronous throw can clean up.
+    _ongoingRefresh = pending;
+    () async {
       try {
         // Inherit the main client's timeouts so a hung refresh endpoint can't
         // stall all coalesced 401 callers indefinitely.
@@ -443,10 +630,16 @@ class DioClient {
           receiveTimeout: _dio.options.receiveTimeout,
           sendTimeout: _dio.options.sendTimeout,
         ));
-        return await callback(dioForRefresh);
+        completer.complete(await callback(dioForRefresh));
+      } catch (error, stack) {
+        completer.completeError(error, stack);
       } finally {
-        _ongoingRefresh = null;
+        if (generation == _sessionGeneration &&
+            identical(_ongoingRefresh, pending)) {
+          _ongoingRefresh = null;
+        }
       }
     }();
+    return pending;
   }
 }

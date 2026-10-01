@@ -18,8 +18,8 @@ final _logger = Logger(
 /// Logs an error message in debug builds only.
 ///
 /// We never log the full response/result here — those routinely contain PII or
-/// tokens, and logging them in production is a compliance risk. Only short error
-/// messages are logged, and only when not in release mode.
+/// tokens. Even short exception/server messages can contain credentials;
+/// callers pass only exception type metadata, and only outside release mode.
 void _logError(String message) {
   if (!kReleaseMode) _logger.e(message);
 }
@@ -47,14 +47,14 @@ FutureResult<R?> safeRemoteCall<T, R>({
   } on NetworkException catch (e) {
     // NetworkException is a Failure — return it directly, preserving its
     // specific type (Unauthorized/NotFound/...) instead of flattening it.
-    _logError('NetworkException: ${e.message}');
+    _logError('NetworkException (${e.runtimeType})');
     return ResultError(e);
   } on DioException catch (e) {
     final networkException = NetworkException.fromDioException(e);
-    _logError('DioException: ${networkException.message}');
+    _logError('DioException (${networkException.runtimeType})');
     return ResultError(networkException);
   } catch (e) {
-    _logError('Unexpected error: $e');
+    _logError('Unexpected error (${e.runtimeType})');
     return ResultError(GenericFailure(message: e.toString()));
   }
 }

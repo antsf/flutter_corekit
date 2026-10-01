@@ -59,8 +59,8 @@ extension UpdateListExt<T> on List<T> {
   ///   - and [isDelete] is `true`, that element is removed;
   ///   - otherwise, it's replaced with the result of
   ///     `onUpdate(existingElement, newItem)`.
-  /// - If no match is found and [insertIfNotFound] is `true` (the default),
-  ///   [newItem] is inserted at index 0.
+  /// - If no match is found, deletion leaves the list unchanged. Otherwise,
+  ///   if [insertIfNotFound] is `true`, [newItem] is inserted at index 0.
   ///
   /// Throws [DeleteItemFailure], [UpdateItemFailure], or [InsertItemFailure]
   /// if the underlying list mutation throws (e.g. an unmodifiable list).
@@ -81,7 +81,7 @@ extension UpdateListExt<T> on List<T> {
     final index = indexWhere((item) => findItemCallback(item, newItem));
 
     if (index == -1) {
-      if (!insertIfNotFound) {
+      if (isDelete || !insertIfNotFound) {
         dev.log('updateWith: no match found, insertIfNotFound is false.');
         return this;
       }

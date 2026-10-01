@@ -2,35 +2,69 @@ import 'dart:async';
 
 /// Stream utility extensions — debounce and throttle without external dependencies.
 extension StreamExtension<T> on Stream<T> {
-  /// Emits a value only after [duration] of silence (no new events).
+  /// Emits a value after [duration] of silence. Completion flushes the last
+  /// pending value before done. Errors flush pending data before forwarding
+  /// the same error/stack, then the stream can continue. Cancelling the last
+  /// listener discards pending data, releases the source and closes this
+  /// broadcast pipeline; a later listener receives done, not a new source.
+  /// Upstream cancellation errors are reported once to the creating Zone;
+  /// they do not reopen the pipeline or delay output completion.
   Stream<T> debounce(Duration duration) {
     final controller = StreamController<T>.broadcast();
     Timer? timer;
     StreamSubscription<T>? sub;
-    // Subscribe to the source lazily (on first listen) and tear it down when
-    // the downstream cancels, so the source isn't subscribed forever / leaked.
+    late T pending;
+    var hasPending = false;
+    var terminal = false;
+    final zone = Zone.current;
+    void flush() {
+      timer?.cancel();
+      timer = null;
+      if (hasPending && !controller.isClosed) {
+        final value = pending;
+        hasPending = false;
+        controller.add(value);
+      }
+    }
+
     controller.onListen = () {
+      if (terminal) return;
       sub = listen(
         (event) {
+          pending = event;
+          if (terminal) return;
+          hasPending = true;
           timer?.cancel();
-          timer = Timer(duration, () {
-            if (!controller.isClosed) controller.add(event);
-          });
+          timer = Timer(duration, flush);
         },
         onError: (Object e, StackTrace s) {
+          flush();
           if (!controller.isClosed) controller.addError(e, s);
         },
         onDone: () {
-          timer?.cancel();
+          flush();
+          terminal = true;
           controller.close();
         },
       );
     };
     controller.onCancel = () {
+      if (terminal) return;
+      terminal = true;
       timer?.cancel();
-      final pending = sub?.cancel();
+      timer = null;
+      hasPending = false;
+      final subscription = sub;
       sub = null;
-      return pending;
+      // Broadcast controllers do not await onCancel. Close before yielding so
+      // immediate relisten observes a terminal pipeline, not a second source.
+      unawaited(controller.close());
+      if (subscription != null) {
+        Future<void>.sync(subscription.cancel).then<void>((_) {},
+            onError: (Object error, StackTrace stack) {
+          zone.handleUncaughtError(error, stack);
+        });
+      }
     };
     return controller.stream;
   }

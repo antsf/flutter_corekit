@@ -22,15 +22,25 @@ A comprehensive Flutter core package providing theme management, network handlin
 
 ## Getting Started
 
-Add to your `pubspec.yaml`:
+Add the reviewed GitHub source to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   flutter_corekit:
     git:
-      url: https://github.com/antsf/flutter_corekit
-      ref: main
+      url: https://github.com/antsf/flutter_corekit.git
+      ref: fix/independent-review-20260930
 ```
+
+The branch above carries the **3.1.1 release preparation** while its PR is open.
+For a reproducible app setup, replace the branch with the full commit SHA shown
+in the PR and commit the application's `pubspec.lock`. After the PR is merged
+and `v3.1.1` is actually tagged, that tag may be used instead. Do not assume the
+version bump means the tag or a pub.dev publication already exists.
+
+For OMS/PH apps that want routing and Riverpod as well, use
+`antsf_flutter_starter`: its GitHub release-preparation dependency pins this
+corekit source to a reviewed commit. See `RELEASE_NOTES.md` for release scope.
 
 Import everything from one place:
 
@@ -108,6 +118,51 @@ if (deleted.isSuccessful) print('User deleted');
 client.invalidateCache('/users');
 client.clearCache();
 ```
+
+### Session, cache, and diagnostic contracts
+
+- Change identity through `setAuthToken`, `clearAuthToken`, or the header
+  management methods. They invalidate the managed session and its GET cache.
+  In-flight requests cannot retry after an identity change, including during
+  backoff, and late successful GET/POST/PUT/PATCH/DELETE completions become
+  cancellation failures rather than returning data from the previous session.
+  Old request credentials are never silently replaced with a different account.
+- Refresh is coalesced within one session and recovers after synchronous or
+  asynchronous callback failures. A delayed 401 using that session's previous
+  token replays at most once with the already-refreshed token, without another
+  refresh. An explicit per-request `Authorization` header opts out of managed
+  refresh even if its value equals the global header. Requests and downloads
+  with explicit credentials still respect managed logout/account-switch barriers.
+- GET cache keys include effective URI/query, headers, extra context, response
+  settings, session, and transformer epoch. Unknown/custom interceptors,
+  transformers, encoders/decoders, or validation callbacks bypass the cache.
+  Only exact `FusedTransformer` and exact `SyncTransformer` with unmodified
+  standard JSON callbacks are cache-safe; subclasses and
+  `BackgroundTransformer` conservatively bypass it. Transformer replacement
+  or observed unsafe configuration clears old entries and prevents an older
+  in-flight response from repopulating that cache context. Mutating exposed Dio
+  state between requests without using managed identity methods is not a
+  substitute for session invalidation.
+- An already-cancelled GET `CancelToken` produces `CancelledException` on both
+  cache hits and misses, without invoking the adapter.
+- Built-in HTTP/retry/client diagnostics omit URI, credential headers,
+  payload values, raw exception messages, and raw exception stacks. Retry logs
+  contain attempt/delay metadata; client failure logs contain fixed event text.
+  Diagnostic logger failures are best-effort and do not replace network
+  outcomes. Custom interceptors/loggers must enforce their own privacy policy.
+  `download` remains `Future<void>` and throws a `NetworkException` on failure;
+  unlike the JSON request methods, it does not return `ApiResponse`.
+
+### Debounce lifecycle
+
+`stream.debounce(duration)` flushes the last pending value before source done,
+including a pending `null`. Source errors flush pending data and preserve their
+error/stack before allowing subsequent events. Cancelling the last listener
+synchronously makes the broadcast pipeline terminal, discards pending data,
+and cancels the source once. Immediate later listeners receive done without
+waiting for asynchronous source cancellation or resubscribing. A source
+cancellation failure is reported once, with its original stack, to the Zone in
+which the debounce pipeline was created; it does not reopen the stream.
 
 ### Secure Storage
 
@@ -232,7 +287,7 @@ result.when(
 final name = result.map((user) => user.name);
 ```
 
-### New Utilities (Unreleased)
+### Additional Utilities
 
 ```dart
 // Hex color <-> Color

@@ -3,6 +3,7 @@ import 'dart:math' show pow, Random;
 
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
+import 'network_logging.dart';
 
 /// Random source for backoff jitter. A single shared instance is fine — jitter
 /// only needs to de-correlate retries across requests, not be cryptographic.
@@ -78,11 +79,15 @@ class DioRetryInterceptor extends Interceptor {
   final Logger? logger;
   final bool enableLogging;
 
+  /// Optional session barrier, checked before and after retry backoff.
+  final bool Function(RequestOptions)? canRetry;
+
   DioRetryInterceptor({
     required this.dio,
     this.options = const RetryOptions(),
     this.logger,
     this.enableLogging = true,
+    this.canRetry,
   });
 
   @override
@@ -95,6 +100,9 @@ class DioRetryInterceptor extends Interceptor {
   Future<void> onError(
       DioException err, ErrorInterceptorHandler handler) async {
     final requestOptions = err.requestOptions;
+    if (!(canRetry?.call(requestOptions) ?? true)) {
+      return handler.next(err);
+    }
     final currentAttempt = requestOptions.extra['retry_attempt'] as int? ?? 1;
 
     final shouldRetry = _shouldRetry(err);
@@ -103,13 +111,18 @@ class DioRetryInterceptor extends Interceptor {
       final delayMs = options.calculateDelay(currentAttempt);
 
       if (enableLogging && logger != null) {
-        logger!.i(
-          'DioRetryInterceptor: Retrying ${requestOptions.method} ${requestOptions.uri} '
+        logNetworkMetadata(
+          logger,
+          Level.info,
+          'DioRetryInterceptor: Retrying request '
           '(attempt ${currentAttempt + 1}/${options.maxAttempts}) after ${delayMs}ms.',
         );
       }
 
       await Future.delayed(Duration(milliseconds: delayMs));
+      if (!(canRetry?.call(requestOptions) ?? true)) {
+        return handler.next(err);
+      }
       requestOptions.extra['retry_attempt'] = currentAttempt + 1;
 
       try {
@@ -126,9 +139,10 @@ class DioRetryInterceptor extends Interceptor {
       }
     } else {
       if (enableLogging && logger != null && shouldRetry) {
-        logger!.w(
-          'DioRetryInterceptor: Max retry attempts reached for '
-          '${requestOptions.method} ${requestOptions.uri}.',
+        logNetworkMetadata(
+          logger,
+          Level.warning,
+          'DioRetryInterceptor: Max retry attempts reached.',
         );
       }
       return handler.next(err);

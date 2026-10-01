@@ -53,16 +53,32 @@ abstract class FormInput<T> {
   /// Whether [value] fails [validator].
   bool get isNotValid => !isValid;
 
+  /// Immutable policy values that influence validation. Override in inputs
+  /// with configurable validators; value and purity are compared separately.
+  List<Object?> get validationPolicy => const [];
+
+  bool _hasSamePolicy(FormInput<T> other) {
+    final policy = validationPolicy;
+    final otherPolicy = other.validationPolicy;
+    if (policy.length != otherPolicy.length) return false;
+    for (var i = 0; i < policy.length; i++) {
+      if (policy[i] != otherPolicy[i]) return false;
+    }
+    return true;
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is FormInput<T> &&
           other.runtimeType == runtimeType &&
           other.value == value &&
-          other.isPure == isPure);
+          other.isPure == isPure &&
+          _hasSamePolicy(other));
 
   @override
-  int get hashCode => Object.hash(runtimeType, value, isPure);
+  int get hashCode =>
+      Object.hash(runtimeType, value, isPure, Object.hashAll(validationPolicy));
 
   @override
   String toString() =>

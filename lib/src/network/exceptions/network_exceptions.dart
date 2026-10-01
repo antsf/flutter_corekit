@@ -102,8 +102,13 @@ abstract class NetworkException extends Failure implements Exception {
 
     // Check if the response data is a Map and contains a 'message' or 'error' key
     if (responseData is Map<String, dynamic>) {
-      apiMessage = responseData['message'] as String? ??
-          responseData['error'] as String?;
+      final message = responseData['message'];
+      final error = responseData['error'];
+      apiMessage = message is String && message.isNotEmpty
+          ? message
+          : error is String
+              ? error
+              : null;
     } else if (responseData is String) {
       // Handle cases where the response body is a plain string
       apiMessage = responseData;

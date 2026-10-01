@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## 3.1.1 — 2026-10-01
+
+Patch release preparation. The source is delivered through a pull request; the
+`v3.1.1` tag and GitHub Release are created only after merge approval.
+
+### Fixed
+- Partition GET cache entries by managed session and per-request Authorization;
+  reject stale request/refresh/retry completions after logout or account switch,
+  including requests queued before interceptors run and retries in backoff.
+- Recover coalesced refresh after synchronous/asynchronous failures; retry a late
+  401 with the refreshed token only within its original managed session.
+- Bypass caching for custom transformers/interceptors and unrepresentable request
+  callbacks; verify the request context again before writing a cache entry.
+- Coalesce concurrent `Core.initialize` calls, allow retry after failure, and
+  prevent an obsolete initialization from completing after reset.
+- Safely map non-object error bodies, format valid phone-number boundary lengths,
+  leave lists unchanged when deleting an absent item, and clean up debounced
+  stream subscriptions/timers on completion, error and cancellation.
+- Replace path placeholders in one pass, encode parameter values, and reject
+  unresolved parameters or dot-segment values.
+- Include validator policy in equality/hash behavior and redact password/OTP
+  diagnostics. Network diagnostics log metadata, not raw URLs, payloads, server
+  text or exception messages, and logging failures cannot change request results.
+
+### Upgrade notes
+- Treat stale-session responses as cancellation failures. Use the client's auth
+  management methods when switching identities; do not mutate auth behind it.
+- Validation now rejects `.` and `..` route parameter values. Password/OTP
+  diagnostics and network logs intentionally provide less private detail.
+- No public API rename and no new platform-plugin feature is included.
+
+### Verification
+- 484 unit/widget tests passed; analyzer, formatting and whitespace checks passed.
+- Independent source review and focused session-race re-review found no remaining
+  blockers. Native/device plugin verification is not claimed.
+- See `RELEASE_NOTES.md` for GitHub consumption and release boundaries.
+
 ## 3.1.0 — 2026-09-25
 
 ### Changed (behavior — review these before upgrading)

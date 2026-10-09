@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## Unreleased — accessible widgets
+
+### Added
+- Theme-driven CoreButton, CoreTextField/CorePasswordField, CoreIconButton,
+  CoreChoiceGroup/CoreCheckboxOption and CoreStatusBadge.
+- Actual package-owned CoreDialog/CoreBottomSheet surfaces, CoreNotice,
+  CoreSnackbar and CoreStateView; existing modal extension APIs are preserved.
+- Spinner-only button loading (16px, stroke 1) with stable geometry, original
+  label/busy semantics, disabled callbacks and reduced-motion handling.
+- Large-font wrapping, growable controls, keyboard-safe modal scrolling,
+  native autofill/form forwarding and safe password reveal behavior.
+- Single/multiple choice chips with disabled states and immutable callbacks.
+
+### Verification and delivery
+- 655 package tests and 545 OMS consumer tests passed; both analyzers clean.
+- Independent source review found no blocking implementation findings.
+- Source delivered on `feat/accessible-core-widgets` through a PR; consumers
+  should pin its full commit SHA. No new package version, tag or pub.dev release.
+- Physical testing remains paused. Full Flutter 3.27 runtime/dependency
+  verification was not executed; the known newer hint API was removed.
+
 ## 3.1.1 — 2026-10-01
 
 Patch release preparation. The source is delivered through a pull request; the

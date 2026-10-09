@@ -50,6 +50,55 @@ import 'package:flutter_corekit/flutter_corekit.dart';
 
 ## Usage
 
+### Accessible widgets (unreleased source feature)
+
+The `feat/accessible-core-widgets` source branch adds the widgets below. Pin the
+full commit SHA from its PR for reproducible consumption; these APIs are not a
+claim that a new pub.dev version or release tag exists.
+
+| Family | Public API |
+|---|---|
+| Actions | `CoreButton`, `CoreButtonVariant`, `CoreIconButton` |
+| Forms | `CoreTextField`, `CorePasswordField` |
+| Choices | `CoreChoiceGroup<T>`, `CoreChoice<T>`, `CoreCheckboxOption`, `CoreChoiceSelection`, `CoreChoicePresentation` |
+| Modals | `CoreDialog`, `CoreBottomSheet` |
+| Feedback | `CoreNotice`, `CoreSnackbar`, `CoreNoticeTone`, `CoreStatusBadge` |
+| State | `CoreStateView`, `CoreStateKind` |
+
+Widgets inherit `ThemeData`, `ColorScheme` and `TextTheme`. Controls grow with
+text scaling instead of fixing their maximum height; touch targets are at least
+48px. Loading buttons display only a centered 16px circular spinner (stroke 1),
+preserve their normal footprint and accessible action label, and disable repeat
+actions. Reduced-motion settings are respected.
+
+```dart
+CoreButton(label: 'Simpan', onPressed: onSave, isLoading: isSaving);
+CorePasswordField(
+  controller: passwordController,
+  showLabel: 'Tampilkan password',
+  hideLabel: 'Sembunyikan password',
+);
+CoreChoiceGroup<String>(
+  presentation: CoreChoicePresentation.chips,
+  selection: CoreChoiceSelection.multiple,
+  choices: const [CoreChoice(value: 'active', label: 'Aktif')],
+  selectedValues: selectedValues,
+  onChanged: onSelectionChanged,
+);
+await CoreBottomSheet.show<void>(
+  context,
+  title: 'Filter',
+  child: filterContent,
+);
+```
+
+The application owns selection, callbacks, controllers/focus nodes, validation,
+networking and notification queue/route lifecycle. `CorePasswordField` can use
+local visibility or caller-controlled `obscureText` plus `onToggleObscure`, but
+always disables suggestions/autocorrect even when revealed. Modal surfaces are
+actual package-owned composition, not merely renamed Material helpers. See
+[the design and verification contract](docs/features/accessible-core-widgets.md).
+
 ### Theme Setup
 
 ```dart

@@ -97,7 +97,7 @@ networking and notification queue/route lifecycle. `CorePasswordField` can use
 local visibility or caller-controlled `obscureText` plus `onToggleObscure`, but
 always disables suggestions/autocorrect even when revealed. Modal surfaces are
 actual package-owned composition, not merely renamed Material helpers. See
-[the design and verification contract](docs/features/accessible-core-widgets.md).
+[the design and verification contract](doc/features/accessible-core-widgets.md).
 
 ### Theme Setup
 

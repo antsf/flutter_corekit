@@ -1,6 +1,8 @@
 # flutter_corekit unreleased source feature
 
-Source preparation date: 2026-10-28. Branch: `feat/bottom-sheet-inline-header`.
+Source preparation date: 2026-10-28, follow-up 2026-10-29. Branch:
+`feat/bottom-sheet-inline-header`, landed on `main` directly on 2026-10-29
+per explicit user instruction (no version bump, tag, or pub.dev release).
 This is source-delivery documentation for the accessible-widget follow-ups; the
 detailed list lives in `CHANGELOG.md` (Unreleased section). The prepared
 `3.1.1` release notes below still describe the last versioned checkpoint.
@@ -19,10 +21,18 @@ detailed list lives in `CHANGELOG.md` (Unreleased section). The prepared
   `doc/features/text-field-variants.md`).
 - CoreButton/CoreTextField colors and styles resolve through the `context.*`
   theme-role extensions.
+- 2026-10-29: the drag handle is now spec-accurate (32×4dp, `onSurfaceVariant`
+  40% opacity, 22dp padding) and actually sits above the title/close row
+  (previous wording claimed this but the implementation rendered it below);
+  every widget now uses `context.*` exclusively (no raw `Theme.of`/
+  `MediaQuery.of`) and every spacer `SizedBox` uses the `.spacingWidth`/
+  `.spacingHeight` num extensions; `CoreTextField.showClearButton` added;
+  `CoreSearchDropdown` added; `CONTRIBUTING.md` documents the consumer-app
+  usage standard.
 
 ## Verification and limits
 
-Full package suite 663 passed, zero skipped; analyzer clean (Flutter
+Full package suite 682 passed, zero skipped; analyzer clean (Flutter
 3.47.1 / Dart 3.13.1 toolchain as documented). No consumer re-run was executed
 for this branch. Device testing remains paused per standing user instruction.
 

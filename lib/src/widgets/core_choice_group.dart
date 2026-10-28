@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../extensions/extensions.dart';
+
 enum CoreChoiceSelection { single, multiple }
 
 enum CoreChoicePresentation { list, chips }
@@ -39,11 +41,10 @@ class CoreCheckboxOption extends StatelessWidget {
           onChanged == null ? null : (value) => onChanged!(value ?? false),
       controlAffinity: ListTileControlAffinity.leading,
       contentPadding: contentPadding,
-      activeColor: activeColor ?? Theme.of(context).colorScheme.primary,
+      activeColor: activeColor ?? context.primaryColor,
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
-      title: Text(label,
-          softWrap: true, style: Theme.of(context).textTheme.bodyMedium),
+      title: Text(label, softWrap: true, style: context.bodyMedium),
       secondary: secondary);
 }
 
@@ -104,9 +105,8 @@ class CoreChoiceGroup<T> extends StatelessWidget {
                     },
               contentPadding: EdgeInsets.zero,
               visualDensity: VisualDensity.standard,
-              title: Text(choice.label,
-                  softWrap: true,
-                  style: Theme.of(context).textTheme.bodyMedium),
+              title:
+                  Text(choice.label, softWrap: true, style: context.bodyMedium),
               secondary: choice.secondary),
     ]);
   }

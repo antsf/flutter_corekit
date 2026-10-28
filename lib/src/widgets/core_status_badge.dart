@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../extensions/extensions.dart';
 import 'core_notice.dart';
 
 /// Noninteractive theme-driven status copy; essential text wraps.
@@ -20,8 +22,7 @@ class CoreStatusBadge extends StatelessWidget {
   final BorderRadiusGeometry borderRadius;
   @override
   Widget build(BuildContext context) {
-    final (background, foreground, _, _) =
-        tone.palette(Theme.of(context).colorScheme);
+    final (background, foreground, _, _) = tone.palette(context.colorScheme);
     final ink = foregroundColor ?? foreground;
     return DecoratedBox(
         decoration: BoxDecoration(
@@ -34,15 +35,12 @@ class CoreStatusBadge extends StatelessWidget {
                 children: [
                   if (icon != null) ...[
                     ExcludeSemantics(child: Icon(icon, size: 16, color: ink)),
-                    const SizedBox(width: 4)
+                    0.25.spacingWidth
                   ],
                   Flexible(
                       child: Text(label,
                           softWrap: true,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelMedium
-                              ?.copyWith(color: ink))),
+                          style: context.labelMedium?.copyWith(color: ink))),
                 ])));
   }
 }

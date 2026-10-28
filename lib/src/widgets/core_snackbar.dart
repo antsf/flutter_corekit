@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+
+import '../extensions/extensions.dart';
 import 'core_notice.dart';
 
 /// Reusable notification surface. Host owns queue, positioning and motion.
@@ -34,18 +36,17 @@ class CoreSnackbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final media = MediaQuery.of(context);
     final (background, foreground, accent, defaultIcon) =
-        tone.palette(theme.colorScheme);
+        tone.palette(context.colorScheme);
     final ink = foregroundColor ?? foreground;
     final tint = accentColor ?? accent;
-    final reduced = media.disableAnimations || media.accessibleNavigation;
+    final reduced = MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.accessibleNavigationOf(context);
     final available = math.max(
         48.0,
-        media.size.height -
-            media.viewPadding.vertical -
-            media.viewInsets.bottom);
+        context.screenHeight -
+            context.viewPadding.vertical -
+            context.keyboardHeight);
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: available),
       child: Semantics(
@@ -55,7 +56,7 @@ class CoreSnackbar extends StatelessWidget {
             key: surfaceKey,
             color: backgroundColor ?? background,
             elevation: 6,
-            shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.2),
+            shadowColor: context.colorScheme.shadow.withValues(alpha: 0.2),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             clipBehavior: Clip.antiAlias,
@@ -87,13 +88,13 @@ class CoreSnackbar extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(title,
-                                style: theme.textTheme.titleSmall?.copyWith(
+                                style: context.titleSmall?.copyWith(
                                     color: ink, fontWeight: FontWeight.w600)),
                             if (description != null) ...[
-                              const SizedBox(height: 4),
+                              0.25.spacingHeight,
                               Text(description!,
-                                  style: theme.textTheme.bodyMedium
-                                      ?.copyWith(color: ink)),
+                                  style:
+                                      context.bodyMedium?.copyWith(color: ink)),
                             ],
                           ]),
                     )),

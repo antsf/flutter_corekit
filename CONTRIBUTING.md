@@ -83,3 +83,48 @@ Tests should cover:
 - [ ] CHANGELOG.md updated under the appropriate version
 - [ ] README.md updated if public API changed
 - [ ] No commented-out code added
+
+## Consumer app usage standard
+
+If your app depends on `flutter_corekit`, use its features maximally — a raw
+Flutter API is a defect, not a style choice, whenever this package already
+provides the equivalent:
+
+- **No raw `Theme.of(context)` / `MediaQuery.of(context).something`.** Use the
+  `context.*` extensions (`color_scheme_ext.dart`, `text_theme_ext.dart`,
+  `ui_ext.dart`): `context.theme`, `context.colorScheme`, `context.primaryColor`
+  / `surfaceColor` / `errorColor` / `onSurfaceVariantColor` / etc.,
+  `context.titleLarge` / `bodyMedium` / `labelSmall` / etc., `context.keyboardHeight`,
+  `context.screenHeight`, `context.viewPadding`, `context.viewInsets`,
+  `context.dialogTheme`, `context.bottomSheetTheme`, `context.inputDecorationTheme`.
+  Exception: `MediaQuery.disableAnimationsOf(context)` /
+  `MediaQuery.accessibleNavigationOf(context)` are the idiomatic Flutter form,
+  not the banned pattern.
+- **No raw `SizedBox`/`EdgeInsets`/`BorderRadius.circular` used for spacing,
+  padding or radius.** Use the `num` extensions in `ui_ext.dart` (multiples of
+  `kPadding`=16 / `kRadius`=10): `.spacing`/`.spacingWidth`/`.spacingHeight`,
+  `.padding`/`.paddingHorizontal`/`.paddingVertical`/`.paddingLeft`/`.paddingTop`/
+  `.paddingRight`/`.paddingBottom`, `.radius`/`.radiusTop`/`.radiusBottom`/
+  `.radiusHorizontal`/`.cornerRadius`, and `[...].spaceBetween(...)` for list
+  gaps (`widget_ext.dart`). A `SizedBox` that sizes real content — a touch
+  target, an icon's fixed box, an image placeholder — is not a spacer; leave
+  those alone. These extensions call flutter_screenutil's `.w`/`.h`, which
+  throw `LateInitializationError` until `ScreenUtil` is configured once (the
+  app root normally does this via `ScreenUtilInit`; widget tests need their
+  own init — see this package's own `test/flutter_test_config.dart` and
+  `test/test_helpers.dart` for the pattern).
+- **Prefer this package's `Core*` widgets over the raw Material equivalent**
+  whenever one exists: `CoreButton`, `CoreIconButton`, `CoreTextField` /
+  `CorePasswordField`, `CoreChoiceGroup`, `CoreDialog`, `CoreBottomSheet`,
+  `CoreSearchDropdown`, `CoreNotice` / `CoreSnackbar` / `CoreStatusBadge`,
+  `CoreStateView`, `Tappable`, `AnimatedCounter` — not a hand-rolled
+  equivalent built from raw Material widgets.
+- Also prefer `ThemeProvider`, `DioClient`/`ApiResponse`/`NetworkException`,
+  `SecureStorage`, `FormInput`/validators, `Result`/`Failure`, and the
+  extension files (navigation, dialogs/alerts, date, number, string, stream,
+  duration) over a hand-rolled equivalent — see the README for the full list.
+
+This package's own non-widget internals aren't fully compliant yet either
+(e.g. `dialogs_and_alerts_ext.dart`'s `showLoadingDialog` still has a couple
+of raw `SizedBox`/`EdgeInsets` and a raw `AlertDialog` instead of
+`CoreDialog`) — a PR closing that gap is welcome.

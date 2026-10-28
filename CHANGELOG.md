@@ -20,16 +20,50 @@ All notable changes to this project will be documented in this file.
   hint by default (or a bounded ellipsizing one when `maxLines` is set).
   Ordinary fields stay single-line with an ellipsized hint; obscured
   textarea/plain multiline combinations are rejected at construction.
+- `CoreTextField.showClearButton`: opt-in close-glyph suffix that clears the
+  field once it has text (`outlineVariant`, hidden whenever a caller
+  `suffixIcon` is also set — that slot stays caller-owned).
+- `CoreSearchDropdown`: a searchable single-select sheet built on
+  `CoreBottomSheet`/`CoreTextField`.
 
 ### Changed
-- CoreBottomSheet now renders a theme drag-handle pill (outlineVariant, 40×4,
-  8px gap) at the top of the body scroll column, above the optional one-row
-  title/close header; the close control is a 48px-core CoreIconButton.
+- CoreBottomSheet's drag handle now matches the real Material 3 spec and
+  Flutter's own default: a 32×4dp fully-rounded bar in `onSurfaceVariant` at
+  40% opacity, 48dp touch target, 22dp padding above/below, positioned at the
+  very top of the sheet — above the title/close row, not inside the body
+  column. It is dropped entirely (not shrunk) on a sheet too short to also
+  guarantee the close button's 48dp touch target.
+- The close control is a 48px `CoreIconButton` (`Icon(Icons.close, size: 24)`,
+  `outlineVariant`); a hard `ConstrainedBox(minWidth/minHeight: 48)` floor
+  keeps the touch target even in a squeezed landscape header.
 - CoreDialog/CoreBottomSheet share internal `ModalSurfaceBody` and
   `ModalSurfaceCloseButton` parts (not part of the public `widgets.dart`
   exports) so the scrolling body and close behavior stay in one place.
-- CoreButton and CoreTextField resolve colors and text styles through the
-  `context.*` theme-role extensions instead of raw `Theme.of(...)` lookups.
+- Every widget in `lib/src/widgets` now resolves colors, text styles and
+  `MediaQuery` values exclusively through the `context.*` extensions
+  (`color_scheme_ext.dart`/`text_theme_ext.dart`/`ui_ext.dart`) instead of
+  raw `Theme.of(context)`/`MediaQuery.of(context)` lookups: `CoreButton`,
+  `CoreIconButton`, `CoreChoiceGroup`, `CoreStatusBadge`, `CoreStateView`,
+  `CoreSnackbar`, `CoreDialog`, `CoreNotice`, `CoreTextField`, in addition to
+  the already-migrated `CoreBottomSheet`/`ModalSurfaceParts`/
+  `CoreSearchDropdown`.
+- Every spacer `SizedBox` (gap-only, no child) across the widgets now uses
+  the `num` spacing extensions (`.spacingWidth`/`.spacingHeight`) instead of
+  a literal `SizedBox(width:/height:)`; fixed-size content boxes (touch
+  targets, icon squares) are left as `SizedBox`.
+- `CONTRIBUTING.md` documents the consumer-app usage standard: apps
+  depending on this package must prefer its `context.*` extensions, spacing
+  extensions and `Core*` widgets over the raw Flutter equivalent.
+
+### Fixed
+- The drag handle had regressed to rendering *below* the title/close row
+  (inside `ModalSurfaceBody`, which is the second `Flexible` in
+  `CoreBottomSheet`'s column) instead of above it; it is now built directly
+  in `CoreBottomSheet` ahead of the header.
+- `test/flutter_test_config.dart` initializes `ScreenUtil` once per test file
+  (`initScreenUtilForTests()`) — the new spacing-extension usage calls
+  flutter_screenutil's `.w`/`.h`, which throw `LateInitializationError` in a
+  widget test that never configured it.
 
 ### Verification and delivery
 - 655 package tests and 545 OMS consumer tests passed; both analyzers clean.
@@ -40,6 +74,10 @@ All notable changes to this project will be documented in this file.
   verification was not executed; the known newer hint API was removed.
 - Latest branch `feat/bottom-sheet-inline-header`: full package suite
   **663 passed, zero skipped**, analyzer clean.
+- 2026-10-29 follow-up (drag handle fix, context/spacing extension migration,
+  `CoreTextField.showClearButton`): full package suite **682 passed, zero
+  skipped**, analyzer clean. Committed directly to `main` per explicit user
+  instruction; no new package version, tag or pub.dev release.
 
 ## 3.1.1 — 2026-10-01
 

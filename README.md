@@ -52,28 +52,31 @@ import 'package:flutter_corekit/flutter_corekit.dart';
 
 ### Accessible widgets (unreleased source feature)
 
-The `feat/accessible-core-widgets` source branch adds the widgets below. Pin the
-full commit SHA from its PR for reproducible consumption; these APIs are not a
-claim that a new pub.dev version or release tag exists. The latest source branch
-carrying the sheet/text updates is `feat/bottom-sheet-inline-header`.
+The `feat/accessible-core-widgets` and `feat/bottom-sheet-inline-header`
+branches added the widgets below; they are merged into `main`.
 
 | Family | Public API |
 |---|---|
 | Actions | `CoreButton`, `CoreButtonVariant`, `CoreIconButton` |
-| Forms | `CoreTextField`, `CorePasswordField`, `CoreTextFieldVariant` |
+| Forms | `CoreTextField`, `CorePasswordField`, `CoreTextFieldVariant`, `CoreSearchDropdown` |
 | Choices | `CoreChoiceGroup<T>`, `CoreChoice<T>`, `CoreCheckboxOption`, `CoreChoiceSelection`, `CoreChoicePresentation` |
 | Modals | `CoreDialog`, `CoreBottomSheet` |
 | Feedback | `CoreNotice`, `CoreSnackbar`, `CoreNoticeTone`, `CoreStatusBadge` |
 | State | `CoreStateView`, `CoreStateKind` |
 
-Widgets inherit `ThemeData`, `ColorScheme` and `TextTheme`. Controls grow with
-text scaling instead of fixing their maximum height; touch targets are at least
-48px. Loading buttons display only a centered 16px circular spinner (stroke 1),
-preserve their normal footprint and accessible action label, and disable repeat
-actions. Reduced-motion settings are respected. Ordinary `CoreTextField`s keep
+Widgets inherit `ThemeData`, `ColorScheme` and `TextTheme` exclusively through
+the `context.*` extensions — no widget calls `Theme.of(context)` or
+`MediaQuery.of(context)` directly. Controls grow with text scaling instead of
+fixing their maximum height; touch targets are at least 48px. Loading buttons
+display only a centered 16px circular spinner (stroke 1), preserve their
+normal footprint and accessible action label, and disable repeat actions.
+Reduced-motion settings are respected. Ordinary `CoreTextField`s keep
 input and hint to one line with ellipsis; multiline input opts into
-`CoreTextFieldVariant.textarea`. Modal sheets render a theme drag-handle pill
-above the one-row title/close header.
+`CoreTextFieldVariant.textarea`; `showClearButton` adds an optional clear
+affordance. Modal sheets render a Material 3 drag-handle pill (32×4dp,
+`onSurfaceVariant` at 40% opacity, 48dp touch target) above the one-row
+title/close header — dropped entirely rather than shrunk on a sheet too
+short to also guarantee the close button's own 48dp touch target.
 
 ```dart
 CoreButton(label: 'Simpan', onPressed: onSave, isLoading: isSaving);

@@ -65,9 +65,8 @@ class CoreButton extends StatelessWidget {
     final style = TextButton.styleFrom(
       backgroundColor: background,
       foregroundColor: foreground,
-      disabledBackgroundColor: isLoading
-          ? background
-          : Theme.of(context).colorScheme.surfaceContainerHighest,
+      disabledBackgroundColor:
+          isLoading ? background : context.colorScheme.surfaceContainerHighest,
       disabledForegroundColor:
           isLoading ? foreground : context.onSurfaceVariantColor,
       minimumSize: Size(48, minHeight < 48 ? 48 : minHeight),
@@ -89,17 +88,11 @@ class CoreButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (leadingIcon != null) ...[
-                leadingIcon!,
-                const SizedBox(width: 8)
-              ],
+              if (leadingIcon != null) ...[leadingIcon!, 0.5.spacingWidth],
               Flexible(
                   child:
                       Text(label, textAlign: TextAlign.center, softWrap: true)),
-              if (trailingIcon != null) ...[
-                const SizedBox(width: 8),
-                trailingIcon!
-              ],
+              if (trailingIcon != null) ...[0.5.spacingWidth, trailingIcon!],
             ]),
       ),
       if (isLoading)

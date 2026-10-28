@@ -69,3 +69,43 @@ Button loading matches supplied HubButton.kt: centered 16px circular progress, s
 - Full package suite: **663 passed, zero skipped**; analyzer clean. Branch:
   `feat/bottom-sheet-inline-header`. No new package version, tag or pub.dev
   release; device testing remains paused.
+
+## Drag handle fix, context/spacing extension migration — 2026-10-29
+
+- The drag handle regression from the previous entry's "theme drag-handle
+  pill ... above the optional one-row title/close header" claim was false in
+  practice: it was built inside `ModalSurfaceBody`, which is the *second*
+  `Flexible` in `CoreBottomSheet`'s column, so it rendered below the header,
+  not above it. Fixed by building the handle directly in `CoreBottomSheet`
+  ahead of the header row, and corrected to the real Material 3 spec /
+  Flutter default: 32×4dp fully-rounded bar, `onSurfaceVariant` at 40%
+  opacity, 48dp touch target, 22dp padding above/below (was a non-spec
+  40×4/8px-gap `outlineVariant` bar). It is the lowest layout priority and is
+  dropped entirely — not shrunk — on a sheet too short to also guarantee the
+  close button's 48dp touch target (measured via a `LayoutBuilder` check,
+  not a fixed flex ratio, after two earlier attempts at flex-ratio tuning
+  either broke that 48dp floor or made the title's `SingleChildScrollView`
+  greedily fill the whole sheet).
+- Close control: `Icon(Icons.close, size: 24)`, dropped a `weight: 1` that
+  was a no-op on a non-variable-font icon; color is `outlineVariant`
+  (explicit user decision, not `onSurfaceVariant`).
+- `CoreTextField.showClearButton` (opt-in, default false): a close-glyph
+  suffix that clears the field once it has text, `outlineVariant`, ignored
+  whenever the caller also sets `suffixIcon`.
+- `CoreSearchDropdown` (new, built on `CoreBottomSheet`/`CoreTextField`) was
+  the trigger for finding this package's own inconsistent `context.*` usage;
+  closed by migrating every widget in `lib/src/widgets` off raw
+  `Theme.of(context)`/`MediaQuery.of(context)` and off literal spacer
+  `SizedBox`es (now `.spacingWidth`/`.spacingHeight`, `kPadding`-multiple
+  num extensions) — see `CHANGELOG.md`'s `Unreleased` section for the full
+  file list. `test/flutter_test_config.dart` now initializes `ScreenUtil`
+  once per test file, since the spacing extensions call flutter_screenutil's
+  `.w`/`.h`, which throw `LateInitializationError` otherwise.
+- `CONTRIBUTING.md` documents this as a standing consumer-app contract: any
+  app depending on this package should prefer its `context.*` extensions,
+  spacing extensions and `Core*` widgets over the raw Flutter equivalent.
+  This package's own `dialogs_and_alerts_ext.dart` (`showLoadingDialog`)
+  isn't fully compliant with that contract yet — not fixed in this pass.
+- Full package suite: **682 passed, zero skipped**; analyzer clean. Committed
+  directly to `main` per explicit user instruction (2026-10-29); no new
+  package version, tag or pub.dev release.

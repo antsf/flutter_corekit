@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_corekit/flutter_corekit.dart';
 
 enum CoreButtonVariant {
   primary,
@@ -37,36 +38,43 @@ class CoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final (background, foreground) = switch (variant) {
-      CoreButtonVariant.primary => (colors.primary, colors.onPrimary),
-      CoreButtonVariant.secondary => (colors.secondary, colors.onSecondary),
-      CoreButtonVariant.danger => (colors.error, colors.onError),
+      CoreButtonVariant.primary => (
+          context.primaryColor,
+          context.onPrimaryColor
+        ),
+      CoreButtonVariant.secondary => (
+          context.secondaryColor,
+          context.onSecondaryColor
+        ),
+      CoreButtonVariant.danger => (context.errorColor, context.onErrorColor),
       CoreButtonVariant.tonalPrimary => (
-          colors.primaryContainer,
-          colors.onPrimaryContainer
+          context.primaryContainerColor,
+          context.onPrimaryContainerColor
         ),
       CoreButtonVariant.tonalDanger => (
-          colors.errorContainer,
-          colors.onErrorContainer
+          context.errorContainerColor,
+          context.onErrorContainerColor
         ),
       CoreButtonVariant.outlined || CoreButtonVariant.text => (
-          colors.surface,
-          colors.primary
+          context.surfaceColor,
+          context.primaryColor
         ),
     };
     final active = enabled && !isLoading && onPressed != null;
     final style = TextButton.styleFrom(
       backgroundColor: background,
       foregroundColor: foreground,
-      disabledBackgroundColor:
-          isLoading ? background : colors.surfaceContainerHighest,
-      disabledForegroundColor: isLoading ? foreground : colors.onSurfaceVariant,
+      disabledBackgroundColor: isLoading
+          ? background
+          : Theme.of(context).colorScheme.surfaceContainerHighest,
+      disabledForegroundColor:
+          isLoading ? foreground : context.onSurfaceVariantColor,
       minimumSize: Size(48, minHeight < 48 ? 48 : minHeight),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.standard,
-      textStyle: Theme.of(context).textTheme.labelLarge,
+      textStyle: context.labelLarge,
       shape: pill
           ? const StadiumBorder()
           : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

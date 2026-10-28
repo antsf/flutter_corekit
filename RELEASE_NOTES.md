@@ -1,3 +1,39 @@
+# flutter_corekit unreleased source feature
+
+Source preparation date: 2026-10-28. Branch: `feat/bottom-sheet-inline-header`.
+This is source-delivery documentation for the accessible-widget follow-ups; the
+detailed list lives in `CHANGELOG.md` (Unreleased section). The prepared
+`3.1.1` release notes below still describe the last versioned checkpoint.
+
+## Main changes
+
+- CoreBottomSheet matches the reference sheet composition: a theme drag-handle
+  pill atop the body scroll column with the one-row title/close header over it.
+- Dialog and sheet surfaces share internal `ModalSurfaceBody` /
+  `ModalSurfaceCloseButton` parts; the scrolling body column and close button
+  behavior change in one place instead of twice.
+- Close control is a 48px `CoreIconButton`; a hard size floor keeps the touch
+  target even in squeezed landscape headers.
+- `CoreTextFieldVariant.textarea` for multiline input and hint wrapping; plain
+  fields keep a one-line ellipsized hint (see
+  `doc/features/text-field-variants.md`).
+- CoreButton/CoreTextField colors and styles resolve through the `context.*`
+  theme-role extensions.
+
+## Verification and limits
+
+Full package suite 663 passed, zero skipped; analyzer clean (Flutter
+3.47.1 / Dart 3.13.1 toolchain as documented). No consumer re-run was executed
+for this branch. Device testing remains paused per standing user instruction.
+
+## Publication boundary
+
+Commit + branch push + PR only. No package version bump, tag, GitHub Release
+or pub.dev publication is created by this step; consumers pin the full commit
+SHA from the PR until a merge/tag is explicitly approved.
+
+---
+
 # flutter_corekit 3.1.1
 
 Release preparation date: 2026-10-01. This is a patch release of the existing

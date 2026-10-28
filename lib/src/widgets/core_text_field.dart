@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/// Multiline input and hints require an explicit textarea variant.
+enum CoreTextFieldVariant { text, textarea }
+
 /// Form-compatible input. Controllers/focus nodes remain caller-owned.
 class CoreTextField extends StatefulWidget {
   const CoreTextField({
@@ -33,10 +36,16 @@ class CoreTextField extends StatefulWidget {
     this.enabled = true,
     this.readOnly = false,
     this.obscureText = false,
-    this.maxLines = 1,
+    this.variant = CoreTextFieldVariant.text,
+    int? maxLines,
     this.autovalidateMode = AutovalidateMode.disabled,
-  })  : assert(controller == null || initialValue == null),
-        assert(!obscureText || maxLines == 1);
+  })  : maxLines = variant == CoreTextFieldVariant.textarea ? maxLines : 1,
+        assert(controller == null || initialValue == null),
+        assert(maxLines == null || maxLines > 0),
+        assert(variant == CoreTextFieldVariant.textarea ||
+            maxLines == null ||
+            maxLines == 1),
+        assert(!obscureText || variant == CoreTextFieldVariant.text);
 
   final double minHeight, horizontalPadding, verticalPadding;
   final TextStyle? style, helperStyle;
@@ -55,6 +64,9 @@ class CoreTextField extends StatefulWidget {
   final bool? enableSuggestions, autocorrect;
   final List<TextInputFormatter>? inputFormatters;
   final bool enabled, readOnly, obscureText;
+  final CoreTextFieldVariant variant;
+
+  /// One for ordinary fields; null (unbounded) by default for textarea.
   final int? maxLines;
   final AutovalidateMode autovalidateMode;
 
@@ -76,6 +88,8 @@ class _CoreTextFieldState extends State<CoreTextField> {
     // InputDecorator retains the old helper during error transitions. Capture
     // this build's text so its state listener cannot read a later null value.
     final helperText = widget.helperText;
+    final textarea = widget.variant == CoreTextFieldVariant.textarea;
+    final hintStyle = Theme.of(context).inputDecorationTheme.hintStyle;
     final style = widget.style ?? Theme.of(context).textTheme.bodyLarge;
     final lineHeight =
         MediaQuery.textScalerOf(context).scale(style?.fontSize ?? 16) *
@@ -97,8 +111,10 @@ class _CoreTextFieldState extends State<CoreTextField> {
       // Keep native validation/state/announcements and inherit its error style.
       errorBuilder: (context, message) =>
           Text(message, overflow: TextOverflow.visible),
-      keyboardType: widget.keyboardType,
-      textInputAction: widget.textInputAction,
+      keyboardType:
+          widget.keyboardType ?? (textarea ? TextInputType.multiline : null),
+      textInputAction:
+          widget.textInputAction ?? (textarea ? TextInputAction.newline : null),
       autofillHints: widget.autofillHints,
       inputFormatters: widget.inputFormatters,
       enabled: widget.enabled,
@@ -113,11 +129,19 @@ class _CoreTextFieldState extends State<CoreTextField> {
       decoration: InputDecoration(
         labelText: widget.labelText,
         hintText: widget.hintText,
-        // Older SDKs inherit the field's single-line limit when this is null.
-        // A line cannot consume fewer than one code unit (plus a final empty
-        // line), so this content-derived bound never truncates the hint.
-        hintMaxLines:
-            widget.hintText == null ? null : widget.hintText!.length + 1,
+        hintStyle: WidgetStateTextStyle.resolveWith((states) =>
+            (WidgetStateProperty.resolveAs(hintStyle, states) ??
+                    const TextStyle())
+                .copyWith(
+                    overflow: textarea && widget.maxLines == null
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis)),
+        // Explicitly keep native hints single-line except for textarea.
+        // A content-derived bound also preserves old SDK textarea wrapping.
+        hintMaxLines: textarea
+            ? widget.maxLines ??
+                (widget.hintText == null ? null : widget.hintText!.length + 1)
+            : 1,
         helper: helperText == null
             ? null
             : ValueListenableBuilder<Set<WidgetState>>(

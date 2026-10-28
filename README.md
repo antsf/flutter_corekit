@@ -54,12 +54,13 @@ import 'package:flutter_corekit/flutter_corekit.dart';
 
 The `feat/accessible-core-widgets` source branch adds the widgets below. Pin the
 full commit SHA from its PR for reproducible consumption; these APIs are not a
-claim that a new pub.dev version or release tag exists.
+claim that a new pub.dev version or release tag exists. The latest source branch
+carrying the sheet/text updates is `feat/bottom-sheet-inline-header`.
 
 | Family | Public API |
 |---|---|
 | Actions | `CoreButton`, `CoreButtonVariant`, `CoreIconButton` |
-| Forms | `CoreTextField`, `CorePasswordField` |
+| Forms | `CoreTextField`, `CorePasswordField`, `CoreTextFieldVariant` |
 | Choices | `CoreChoiceGroup<T>`, `CoreChoice<T>`, `CoreCheckboxOption`, `CoreChoiceSelection`, `CoreChoicePresentation` |
 | Modals | `CoreDialog`, `CoreBottomSheet` |
 | Feedback | `CoreNotice`, `CoreSnackbar`, `CoreNoticeTone`, `CoreStatusBadge` |
@@ -69,7 +70,10 @@ Widgets inherit `ThemeData`, `ColorScheme` and `TextTheme`. Controls grow with
 text scaling instead of fixing their maximum height; touch targets are at least
 48px. Loading buttons display only a centered 16px circular spinner (stroke 1),
 preserve their normal footprint and accessible action label, and disable repeat
-actions. Reduced-motion settings are respected.
+actions. Reduced-motion settings are respected. Ordinary `CoreTextField`s keep
+input and hint to one line with ellipsis; multiline input opts into
+`CoreTextFieldVariant.textarea`. Modal sheets render a theme drag-handle pill
+above the one-row title/close header.
 
 ```dart
 CoreButton(label: 'Simpan', onPressed: onSave, isLoading: isSaving);

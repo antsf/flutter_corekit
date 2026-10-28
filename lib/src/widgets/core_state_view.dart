@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../extensions/extensions.dart';
+
 /// Caller-selected UI state, with no inferred network or domain behavior.
 enum CoreStateKind { loading, empty, error }
 
@@ -21,7 +23,6 @@ class CoreStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final reduced = MediaQuery.disableAnimationsOf(context) ||
         MediaQuery.accessibleNavigationOf(context);
     final defaultIcon = switch (kind) {
@@ -47,24 +48,23 @@ class CoreStateView extends StatelessWidget {
                             ? SizedBox.square(
                                 dimension: 32,
                                 child: CircularProgressIndicator(
-                                    color: theme.colorScheme.primary))
+                                    color: context.primaryColor))
                             : Icon(icon ?? defaultIcon,
                                 size: 40,
                                 color: kind == CoreStateKind.error
-                                    ? theme.colorScheme.error
-                                    : theme.colorScheme.onSurfaceVariant))),
-                const SizedBox(height: 16),
+                                    ? context.errorColor
+                                    : context.onSurfaceVariantColor))),
+                1.spacingHeight,
                 Text(title,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge),
+                    textAlign: TextAlign.center, style: context.titleLarge),
                 if (description != null) ...[
-                  const SizedBox(height: 8),
+                  0.5.spacingHeight,
                   Text(description!,
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant)),
+                      style: context.bodyMedium
+                          ?.copyWith(color: context.onSurfaceVariantColor)),
                 ],
-                if (action != null) ...[const SizedBox(height: 24), action!],
+                if (action != null) ...[1.5.spacingHeight, action!],
               ],
             )),
       ),

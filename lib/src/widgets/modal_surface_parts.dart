@@ -2,6 +2,7 @@
 // actions and footer. Not exported by `widgets.dart` — package internals.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_corekit/src/extensions/extensions.dart';
 
 import 'core_icon_button.dart';
 
@@ -15,7 +16,6 @@ class ModalSurfaceBody extends StatelessWidget {
     this.actions = const [],
     this.footer,
     this.scrollable = true,
-    this.showHandle = false,
   });
 
   final Widget child;
@@ -30,13 +30,8 @@ class ModalSurfaceBody extends StatelessWidget {
   /// the surrounding title/actions/footer can still scroll independently.
   final bool scrollable;
 
-  /// Whether to paint the sheet's drag handle pill at the top of the column
-  /// (sheets only; the dialog never shows one).
-  final bool showHandle;
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         primary: false,
@@ -44,29 +39,16 @@ class ModalSurfaceBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (showHandle) ...[
-              Center(
-                child: Container(
-                  width: kSheetHandleWidth,
-                  height: kSheetHandleHeight,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(kSheetHandleHeight),
-                  ),
-                ),
-              ),
-              const SizedBox(height: kSheetHandleGap),
-            ],
             if (title != null) ...[
               Semantics(
                 header: true,
-                child: Text(title!, style: theme.textTheme.titleLarge),
+                child: Text(title!, style: context.titleLarge),
               ),
-              const SizedBox(height: 12),
+              0.75.spacingHeight,
             ],
             if (description != null) ...[
-              Text(description!, style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 16),
+              Text(description!, style: context.bodyMedium),
+              1.spacingHeight,
             ],
             if (scrollable)
               child
@@ -76,7 +58,7 @@ class ModalSurfaceBody extends StatelessWidget {
                 child: child,
               ),
             if (actions.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              1.spacingHeight,
               Wrap(
                 alignment: WrapAlignment.end,
                 spacing: 8,
@@ -85,7 +67,7 @@ class ModalSurfaceBody extends StatelessWidget {
               ),
             ],
             if (footer != null) ...[
-              const SizedBox(height: 16),
+              1.spacingHeight,
               footer!,
             ],
           ],
@@ -126,17 +108,36 @@ class ModalSurfaceCloseButton extends StatelessWidget {
             : onClose ?? () => Navigator.of(context).maybePop(),
         // M3's IconButton theme default; kept explicit to match the reference
         // sheet close glyph regardless of the host IconButtonTheme.
-        style: IconButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant),
+        style:
+            IconButton.styleFrom(foregroundColor: context.outlineVariantColor),
         icon: const Icon(Icons.close, size: 24),
       ),
     );
   }
 }
 
-// Reference sheet handle (drag pill): app tokens map to
-// avatar=40, xs=4, sm=8, pill=fully rounded ends; touchTarget/icon are already
-// enforced by CoreIconButton (48) and the standard Icon size (24).
-const double kSheetHandleWidth = 40;
+// Material 3 bottom sheet drag handle: a 32×4dp fully-rounded bar in
+// onSurfaceVariant (40% opacity), 48dp min touch target, 22dp padding
+// above/below. Ref: m3.material.io bottom-sheets spec and Flutter's own
+// Material 3 default (widgets/bottom_sheet.dart _BottomSheetDragHandle).
+const double kSheetHandleWidth = 32;
 const double kSheetHandleHeight = 4;
-const double kSheetHandleGap = 8;
+const double kSheetHandlePadding = 22;
+
+/// The Material 3 drag handle bar itself (no touch-target padding).
+/// Callers wrap it in the 48dp min touch target per spec.
+class SheetDragHandle extends StatelessWidget {
+  const SheetDragHandle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: kSheetHandleWidth,
+      height: kSheetHandleHeight,
+      decoration: BoxDecoration(
+        color: context.onSurfaceVariantColor.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(kSheetHandleHeight / 2),
+      ),
+    );
+  }
+}

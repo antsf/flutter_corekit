@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../extensions/extensions.dart';
+
 /// Stateless icon action; the caller owns enabled and busy state.
 class CoreIconButton extends StatelessWidget {
   const CoreIconButton(
@@ -36,8 +38,8 @@ class CoreIconButton extends StatelessWidget {
             }),
             visualDensity: VisualDensity.standard,
             tapTargetSize: MaterialTapTargetSize.padded);
-    final color = effective.foregroundColor?.resolve({}) ??
-        Theme.of(context).colorScheme.primary;
+    final color =
+        effective.foregroundColor?.resolve({}) ?? context.primaryColor;
     final hasOverlay = Overlay.maybeOf(context) != null;
     return Semantics(
         label: semanticsLabel ?? tooltip,

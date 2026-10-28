@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../extensions/extensions.dart';
+
 /// Meaning is communicated by copy and icon, never color alone.
 enum CoreNoticeTone { regular, success, error, warning, info }
 
@@ -60,9 +62,8 @@ class CoreNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final (background, foreground, accent, defaultIcon) =
-        tone.palette(theme.colorScheme);
+        tone.palette(context.colorScheme);
     final ink = foregroundColor ?? foreground;
     return Semantics(
         liveRegion: liveRegion,
@@ -78,20 +79,18 @@ class CoreNotice extends StatelessWidget {
                   ExcludeSemantics(
                       child: Icon(icon ?? defaultIcon,
                           size: 20, color: accentColor ?? accent)),
-                  const SizedBox(width: 8),
+                  0.5.spacingWidth,
                   Expanded(
                       child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                         Text(title,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(color: ink)),
+                            style: context.bodyMedium?.copyWith(color: ink)),
                         if (description != null) ...[
-                          const SizedBox(height: 4),
+                          0.25.spacingHeight,
                           Text(description!,
-                              style: theme.textTheme.bodyMedium
-                                  ?.copyWith(color: ink)),
+                              style: context.bodyMedium?.copyWith(color: ink)),
                         ],
                       ])),
                 ],

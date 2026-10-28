@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../extensions/extensions.dart';
 import 'modal_surface_parts.dart';
 
 /// A theme-driven, keyboard-safe package-owned Dialog surface.
@@ -65,8 +66,8 @@ class CoreDialog extends StatelessWidget {
     bool useRootNavigator = true,
     RouteSettings? routeSettings,
   }) async {
-    final media = MediaQuery.of(context);
-    final reducedMotion = media.disableAnimations || media.accessibleNavigation;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.accessibleNavigationOf(context);
     final navigator = Navigator.of(context, rootNavigator: useRootNavigator);
     final themes = InheritedTheme.capture(from: context, to: navigator.context);
     final result = await showGeneralDialog<T>(
@@ -75,9 +76,8 @@ class CoreDialog extends StatelessWidget {
       routeSettings: routeSettings,
       barrierDismissible: isDismissible && barrierDismissible,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      barrierColor: barrierColor ??
-          Theme.of(context).dialogTheme.barrierColor ??
-          Colors.black54,
+      barrierColor:
+          barrierColor ?? context.dialogTheme.barrierColor ?? Colors.black54,
       transitionDuration:
           reducedMotion ? Duration.zero : const Duration(milliseconds: 200),
       pageBuilder: (routeContext, animation, secondaryAnimation) => themes.wrap(
@@ -106,8 +106,7 @@ class CoreDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboard = context.keyboardHeight;
     return Padding(
       padding: EdgeInsets.only(bottom: keyboard),
       child: MediaQuery.removeViewInsets(
@@ -124,9 +123,9 @@ class CoreDialog extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
                 child: Material(
-                  color: theme.colorScheme.surface,
+                  color: context.surfaceColor,
                   elevation: 6,
-                  shape: theme.dialogTheme.shape ??
+                  shape: context.dialogTheme.shape ??
                       RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),

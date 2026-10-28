@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_corekit/flutter_corekit.dart' show TextThemeExtensions;
-import 'package:flutter_corekit/src/extensions/color_scheme_ext.dart';
 
+import '../extensions/extensions.dart';
 import 'modal_surface_parts.dart';
 
 /// A theme-driven, keyboard-safe package-owned BottomSheet surface.
@@ -68,8 +67,8 @@ class CoreBottomSheet extends StatelessWidget {
     bool useRootNavigator = false,
     RouteSettings? routeSettings,
   }) {
-    final media = MediaQuery.of(context);
-    final reducedMotion = media.disableAnimations || media.accessibleNavigation;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context) ||
+        MediaQuery.accessibleNavigationOf(context);
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
@@ -107,8 +106,7 @@ class CoreBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboard = context.keyboardHeight;
     return Padding(
       padding: EdgeInsets.only(bottom: keyboard),
       child: MediaQuery.removeViewInsets(
@@ -125,61 +123,96 @@ class CoreBottomSheet extends StatelessWidget {
               child: Material(
                 color: context.surfaceColor,
                 elevation: 6,
-                shape: theme.bottomSheetTheme.shape ??
+                shape: context.bottomSheetTheme.shape ??
                     const RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(28)),
                     ),
                 clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (title != null || showClose)
-                        Flexible(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: title != null
-                                    ? SingleChildScrollView(
-                                        primary: false,
-                                        child: Semantics(
-                                          header: true,
-                                          child: Text(
-                                            title!,
-                                            style: context.titleMedium
-                                                ?.copyWith(
-                                                    fontWeight:
-                                                        FontWeight.w600),
-                                          ),
-                                        ),
-                                      )
-                                    : const SizedBox.shrink(),
+                child: LayoutBuilder(
+                  builder: (context, outer) {
+                    // The handle is the lowest layout priority: on a
+                    // comfortable sheet it always renders at its full M3
+                    // size, but it is dropped entirely rather than letting
+                    // the title/close row's guaranteed 48dp touch target
+                    // (close at a 1:2 header:body split of whatever
+                    // remains) shrink below spec. 144 = 48 * 3 (header's
+                    // worst-case 1/3 share needs to clear 48 on its own).
+                    const handleReserve =
+                        kSheetHandlePadding * 2 + kMinInteractiveDimension;
+                    final showHandle = outer.maxHeight.isFinite &&
+                        outer.maxHeight - handleReserve >= 144;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showHandle)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(
+                                vertical: kSheetHandlePadding),
+                            child: Center(
+                              child: SizedBox(
+                                width: kMinInteractiveDimension,
+                                height: kMinInteractiveDimension,
+                                child: Center(child: SheetDragHandle()),
                               ),
-                              if (showClose)
-                                ModalSurfaceCloseButton(
-                                  isDismissible: isDismissible,
-                                  closeLabel: closeLabel,
-                                  onClose: onClose,
+                            ),
+                          ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (title != null || showClose)
+                                  Flexible(
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: title != null
+                                              ? SingleChildScrollView(
+                                                  primary: false,
+                                                  child: Semantics(
+                                                    header: true,
+                                                    child: Text(
+                                                      title!,
+                                                      style: context.titleMedium
+                                                          ?.copyWith(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600),
+                                                    ),
+                                                  ),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                                        if (showClose)
+                                          ModalSurfaceCloseButton(
+                                            isDismissible: isDismissible,
+                                            closeLabel: closeLabel,
+                                            onClose: onClose,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                Flexible(
+                                  flex: 2,
+                                  child: ModalSurfaceBody(
+                                    description: description,
+                                    actions: actions,
+                                    footer: footer,
+                                    scrollable: scrollable,
+                                    child: child,
+                                  ),
                                 ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      Flexible(
-                        flex: 2,
-                        child: ModalSurfaceBody(
-                          description: description,
-                          actions: actions,
-                          footer: footer,
-                          scrollable: scrollable,
-                          showHandle: true,
-                          child: child,
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

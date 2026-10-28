@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../extensions/extensions.dart';
+
 /// Multiline input and hints require an explicit textarea variant.
 enum CoreTextFieldVariant { text, textarea }
 
@@ -23,6 +25,7 @@ class CoreTextField extends StatefulWidget {
     this.errorText,
     this.prefixIcon,
     this.suffixIcon,
+    this.showClearButton = false,
     this.onChanged,
     this.onSaved,
     this.onFieldSubmitted,
@@ -55,6 +58,11 @@ class CoreTextField extends StatefulWidget {
   final FocusNode? focusNode;
   final String? labelText, hintText, helperText, errorText;
   final Widget? prefixIcon, suffixIcon;
+
+  /// Shows a close-glyph suffix that clears the field once it has text.
+  /// Ignored whenever [suffixIcon] is also set — that slot stays
+  /// caller-owned rather than silently combining the two.
+  final bool showClearButton;
   final ValueChanged<String>? onChanged, onFieldSubmitted;
   final FormFieldSetter<String>? onSaved;
   final FormFieldValidator<String>? validator;
@@ -77,8 +85,61 @@ class CoreTextField extends StatefulWidget {
 class _CoreTextFieldState extends State<CoreTextField> {
   final _states = WidgetStatesController();
 
+  /// Only non-null when [CoreTextField.controller] is null: tracked
+  /// separately so disposal never touches a caller-owned controller.
+  TextEditingController? _ownedController;
+  late TextEditingController _effectiveController;
+
+  @override
+  void initState() {
+    super.initState();
+    _effectiveController = widget.controller ??
+        (_ownedController = TextEditingController(text: widget.initialValue));
+    if (widget.showClearButton) {
+      _effectiveController.addListener(_handleTextChanged);
+    }
+  }
+
+  @override
+  void didUpdateWidget(CoreTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      if (oldWidget.showClearButton) {
+        _effectiveController.removeListener(_handleTextChanged);
+      }
+      if (widget.controller == null) {
+        _effectiveController = _ownedController ??=
+            TextEditingController(text: widget.initialValue);
+      } else {
+        _ownedController?.dispose();
+        _ownedController = null;
+        _effectiveController = widget.controller!;
+      }
+      if (widget.showClearButton) {
+        _effectiveController.addListener(_handleTextChanged);
+      }
+    } else if (widget.showClearButton != oldWidget.showClearButton) {
+      if (widget.showClearButton) {
+        _effectiveController.addListener(_handleTextChanged);
+      } else {
+        _effectiveController.removeListener(_handleTextChanged);
+      }
+    }
+  }
+
+  void _handleTextChanged() => setState(() {});
+
+  void _clear() {
+    _effectiveController.clear();
+    widget.onChanged?.call('');
+  }
+
   @override
   void dispose() {
+    if (widget.showClearButton) {
+      _effectiveController.removeListener(_handleTextChanged);
+    }
+    _ownedController?.dispose();
     _states.dispose();
     super.dispose();
   }
@@ -89,8 +150,8 @@ class _CoreTextFieldState extends State<CoreTextField> {
     // this build's text so its state listener cannot read a later null value.
     final helperText = widget.helperText;
     final textarea = widget.variant == CoreTextFieldVariant.textarea;
-    final hintStyle = Theme.of(context).inputDecorationTheme.hintStyle;
-    final style = widget.style ?? Theme.of(context).textTheme.bodyLarge;
+    final hintStyle = context.inputDecorationTheme.hintStyle;
+    final style = widget.style ?? context.bodyLarge;
     final lineHeight =
         MediaQuery.textScalerOf(context).scale(style?.fontSize ?? 16) *
             (style?.height ?? 1);
@@ -98,9 +159,21 @@ class _CoreTextFieldState extends State<CoreTextField> {
       widget.minHeight < 48 ? 48.0 : widget.minHeight,
       double.infinity,
     );
+    final showClear = widget.showClearButton &&
+        widget.suffixIcon == null &&
+        widget.enabled &&
+        !widget.readOnly &&
+        _effectiveController.text.isNotEmpty;
+    final suffixIcon = showClear
+        ? IconButton(
+            tooltip: 'Clear',
+            icon: const Icon(Icons.close, size: 16),
+            color: context.outlineVariantColor,
+            onPressed: _clear,
+          )
+        : widget.suffixIcon;
     final field = TextFormField(
-      controller: widget.controller,
-      initialValue: widget.initialValue,
+      controller: _effectiveController,
       focusNode: widget.focusNode,
       statesController: _states,
       onChanged: widget.onChanged,
@@ -149,13 +222,11 @@ class _CoreTextFieldState extends State<CoreTextField> {
                 builder: (context, states, _) => Text(
                   helperText,
                   style: (widget.helperStyle ??
-                          Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant))
+                          context.bodySmall
+                              ?.copyWith(color: context.onSurfaceVariantColor))
                       ?.merge(
                     WidgetStateProperty.resolveAs(
-                      Theme.of(context).inputDecorationTheme.helperStyle,
+                      context.inputDecorationTheme.helperStyle,
                       states,
                     ),
                   ),
@@ -171,12 +242,11 @@ class _CoreTextFieldState extends State<CoreTextField> {
         prefixIcon: widget.prefixIcon ?? const SizedBox.shrink(),
         prefixIconConstraints: BoxConstraints(
           minWidth: widget.prefixIcon == null
-              ? widget.horizontalPadding -
-                  (Theme.of(context).useMaterial3 ? 4 : 0)
+              ? widget.horizontalPadding - (context.theme.useMaterial3 ? 4 : 0)
               : 48.0,
           minHeight: bodyHeight,
         ),
-        suffixIcon: widget.suffixIcon,
+        suffixIcon: suffixIcon,
         suffixIconConstraints: BoxConstraints(
           minWidth: 48.0,
           minHeight: bodyHeight,

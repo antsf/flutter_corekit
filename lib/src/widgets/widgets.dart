@@ -10,6 +10,7 @@ export 'core_notice.dart';
 export 'core_snackbar.dart';
 export 'core_state_view.dart';
 export 'core_text_field.dart';
+export 'core_search_dropdown.dart';
 export 'core_password_field.dart';
 export 'core_icon_button.dart';
 export 'core_choice_group.dart';

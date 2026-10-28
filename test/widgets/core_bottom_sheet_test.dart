@@ -73,6 +73,20 @@ Finder get surface => find
     .first;
 
 void main() {
+  testWidgets('title shares the close header and stays visible while scrolling',
+      (tester) async {
+    await openModal(tester);
+    final title = find.text('A long heading that must wrap without truncation');
+    final close = find.byTooltip('Close');
+    expect(tester.getCenter(title).dy, tester.getCenter(close).dy);
+    expect(tester.getRect(title).right,
+        lessThanOrEqualTo(tester.getRect(close).left));
+    final before = tester.getTopLeft(title);
+    await tester.ensureVisible(find.text('Useful footer information'));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(title), before);
+  });
+
   for (final size in [const Size(320, 568), const Size(568, 320)]) {
     for (final scale in [1.0, 1.5, 2.0, 3.0]) {
       for (final keyboard in [0.0, 120.0]) {

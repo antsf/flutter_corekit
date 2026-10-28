@@ -16,6 +16,20 @@ All notable changes to this project will be documented in this file.
 - Large-font wrapping, growable controls, keyboard-safe modal scrolling,
   native autofill/form forwarding and safe password reveal behavior.
 - Single/multiple choice chips with disabled states and immutable callbacks.
+- `CoreTextFieldVariant.textarea`: multiline input with an unbounded wrapping
+  hint by default (or a bounded ellipsizing one when `maxLines` is set).
+  Ordinary fields stay single-line with an ellipsized hint; obscured
+  textarea/plain multiline combinations are rejected at construction.
+
+### Changed
+- CoreBottomSheet now renders a theme drag-handle pill (outlineVariant, 40×4,
+  8px gap) at the top of the body scroll column, above the optional one-row
+  title/close header; the close control is a 48px-core CoreIconButton.
+- CoreDialog/CoreBottomSheet share internal `ModalSurfaceBody` and
+  `ModalSurfaceCloseButton` parts (not part of the public `widgets.dart`
+  exports) so the scrolling body and close behavior stay in one place.
+- CoreButton and CoreTextField resolve colors and text styles through the
+  `context.*` theme-role extensions instead of raw `Theme.of(...)` lookups.
 
 ### Verification and delivery
 - 655 package tests and 545 OMS consumer tests passed; both analyzers clean.
@@ -24,6 +38,8 @@ All notable changes to this project will be documented in this file.
   should pin its full commit SHA. No new package version, tag or pub.dev release.
 - Physical testing remains paused. Full Flutter 3.27 runtime/dependency
   verification was not executed; the known newer hint API was removed.
+- Latest branch `feat/bottom-sheet-inline-header`: full package suite
+  **663 passed, zero skipped**, analyzer clean.
 
 ## 3.1.1 — 2026-10-01
 

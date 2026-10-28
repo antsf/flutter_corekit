@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_corekit/flutter_corekit.dart' show TextThemeExtensions;
+import 'package:flutter_corekit/src/extensions/color_scheme_ext.dart';
+
+import 'modal_surface_parts.dart';
 
 /// A theme-driven, keyboard-safe package-owned BottomSheet surface.
 ///
-/// Titles, actions and footer scroll with the body so large text remains
-/// reachable even in landscape with a keyboard. The close target stays visible.
+/// A drag handle pill sits above an optional one-row title/close header.
+/// Actions and footer scroll with the body so they remain reachable in
+/// landscape with a keyboard.
 class CoreBottomSheet extends StatelessWidget {
   const CoreBottomSheet({
     super.key,
@@ -28,7 +33,7 @@ class CoreBottomSheet extends StatelessWidget {
   final bool showClose;
   final String? closeLabel;
 
-  /// False disables user close, barrier, back and (for sheets) drag dismissal.
+  /// False disables user close, barrier, back and drag dismissal.
   /// Explicit Navigator.pop calls from the content can still return a result.
   final bool isDismissible;
 
@@ -62,10 +67,10 @@ class CoreBottomSheet extends StatelessWidget {
     Color? barrierColor,
     bool useRootNavigator = false,
     RouteSettings? routeSettings,
-  }) async {
+  }) {
     final media = MediaQuery.of(context);
     final reducedMotion = media.disableAnimations || media.accessibleNavigation;
-    final result = await showModalBottomSheet<T>(
+    return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -94,9 +99,10 @@ class CoreBottomSheet extends StatelessWidget {
           child: child,
         ),
       ),
-    );
-    if (result == null) onClose?.call();
-    return result;
+    ).then((result) {
+      if (result == null) onClose?.call();
+      return result;
+    });
   }
 
   @override
@@ -111,98 +117,68 @@ class CoreBottomSheet extends StatelessWidget {
         child: SafeArea(
           top: false,
           bottom: keyboard == 0,
-          child: Padding(
-            padding: EdgeInsets.zero,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              heightFactor: 1,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                child: Material(
-                  color: theme.colorScheme.surface,
-                  elevation: 6,
-                  shape: theme.bottomSheetTheme.shape ??
-                      const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(28)),
-                      ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (showClose)
-                          Align(
-                            alignment: AlignmentDirectional.centerEnd,
-                            child: IconButton(
-                              tooltip: closeLabel ??
-                                  MaterialLocalizations.of(context)
-                                      .closeButtonTooltip,
-                              constraints: const BoxConstraints(
-                                  minWidth: 48, minHeight: 48),
-                              onPressed: isDismissible
-                                  ? () {
-                                      if (onClose != null) {
-                                        onClose!();
-                                      } else {
-                                        Navigator.of(context).maybePop();
-                                      }
-                                    }
-                                  : null,
-                              icon: const Icon(Icons.close),
-                            ),
-                          ),
-                        Flexible(
-                          child: LayoutBuilder(builder: (context, constraints) {
-                            return SingleChildScrollView(
-                              primary: false,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  if (title != null) ...[
-                                    Semantics(
-                                      header: true,
-                                      child: Text(title!,
-                                          style: theme.textTheme.titleLarge),
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                  if (description != null) ...[
-                                    Text(description!,
-                                        style: theme.textTheme.bodyMedium),
-                                    const SizedBox(height: 16),
-                                  ],
-                                  if (scrollable)
-                                    child
-                                  else
-                                    ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                          maxHeight: constraints.maxHeight),
-                                      child: child,
-                                    ),
-                                  if (actions.isNotEmpty) ...[
-                                    const SizedBox(height: 16),
-                                    Wrap(
-                                      alignment: WrapAlignment.end,
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: actions,
-                                    ),
-                                  ],
-                                  if (footer != null) ...[
-                                    const SizedBox(height: 16),
-                                    footer!,
-                                  ],
-                                ],
-                              ),
-                            );
-                          }),
-                        ),
-                      ],
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Material(
+                color: context.surfaceColor,
+                elevation: 6,
+                shape: theme.bottomSheetTheme.shape ??
+                    const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(28)),
                     ),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (title != null || showClose)
+                        Flexible(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: title != null
+                                    ? SingleChildScrollView(
+                                        primary: false,
+                                        child: Semantics(
+                                          header: true,
+                                          child: Text(
+                                            title!,
+                                            style: context.titleMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                              if (showClose)
+                                ModalSurfaceCloseButton(
+                                  isDismissible: isDismissible,
+                                  closeLabel: closeLabel,
+                                  onClose: onClose,
+                                ),
+                            ],
+                          ),
+                        ),
+                      Flexible(
+                        flex: 2,
+                        child: ModalSurfaceBody(
+                          description: description,
+                          actions: actions,
+                          footer: footer,
+                          scrollable: scrollable,
+                          showHandle: true,
+                          child: child,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

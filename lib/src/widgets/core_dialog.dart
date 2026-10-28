@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'modal_surface_parts.dart';
+
 /// A theme-driven, keyboard-safe package-owned Dialog surface.
 ///
 /// Titles, actions and footer scroll with the body so large text remains
@@ -138,70 +140,21 @@ class CoreDialog extends StatelessWidget {
                         if (showClose)
                           Align(
                             alignment: AlignmentDirectional.centerEnd,
-                            child: IconButton(
-                              tooltip: closeLabel ??
-                                  MaterialLocalizations.of(context)
-                                      .closeButtonTooltip,
-                              constraints: const BoxConstraints(
-                                  minWidth: 48, minHeight: 48),
-                              onPressed: isDismissible
-                                  ? () {
-                                      if (onClose != null) {
-                                        onClose!();
-                                      } else {
-                                        Navigator.of(context).maybePop();
-                                      }
-                                    }
-                                  : null,
-                              icon: const Icon(Icons.close),
+                            child: ModalSurfaceCloseButton(
+                              isDismissible: isDismissible,
+                              closeLabel: closeLabel,
+                              onClose: onClose,
                             ),
                           ),
                         Flexible(
-                          child: LayoutBuilder(builder: (context, constraints) {
-                            return SingleChildScrollView(
-                              primary: false,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  if (title != null) ...[
-                                    Semantics(
-                                      header: true,
-                                      child: Text(title!,
-                                          style: theme.textTheme.titleLarge),
-                                    ),
-                                    const SizedBox(height: 12),
-                                  ],
-                                  if (description != null) ...[
-                                    Text(description!,
-                                        style: theme.textTheme.bodyMedium),
-                                    const SizedBox(height: 16),
-                                  ],
-                                  if (scrollable)
-                                    child
-                                  else
-                                    ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                          maxHeight: constraints.maxHeight),
-                                      child: child,
-                                    ),
-                                  if (actions.isNotEmpty) ...[
-                                    const SizedBox(height: 16),
-                                    Wrap(
-                                      alignment: WrapAlignment.end,
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: actions,
-                                    ),
-                                  ],
-                                  if (footer != null) ...[
-                                    const SizedBox(height: 16),
-                                    footer!,
-                                  ],
-                                ],
-                              ),
-                            );
-                          }),
+                          child: ModalSurfaceBody(
+                            title: title,
+                            description: description,
+                            actions: actions,
+                            footer: footer,
+                            scrollable: scrollable,
+                            child: child,
+                          ),
                         ),
                       ],
                     ),

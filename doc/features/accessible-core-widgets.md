@@ -47,3 +47,25 @@ Button loading matches supplied HubButton.kt: centered 16px circular progress, s
 - Independent source review passed with no blocking security, logic or implementation-scope findings. Prior editable-label and chips findings are closed. One non-blocking suggestion is additional rendered-paragraph assertions for chip labels.
 - Device testing is paused at the user's request. No new APK/install or device-setting changes. Publication approval is for a source branch/PR and immutable consumer pin, not merge, tag, pub.dev release or repository-settings changes.
 - Unrelated analysis_options.yaml and REVIEW_FIX_HANDOFF.md WIP are excluded from the publication commit.
+
+## Bottom sheet and text variant update — 2026-10-28
+
+- CoreBottomSheet now renders the reference sheet composition: a theme-driven
+  drag handle pill (outlineVariant, 40×4, fully rounded ends, 8px gap) at the
+  top of the body scroll column, above the optional one-row title/close header.
+  The header keeps its 1:2 flexible slot against the body, so every
+  orientation/scale/keyboard check behaves as before; the pill scrolls with
+  the body like the reference app frame.
+- The close control is built on CoreIconButton with an explicit hard 48px
+  ConstrainedBox floor: style-level `minimumSize` alone shrinks under squeezed
+  parent rows (verified 44px render in the landscape+keyboard scene).
+- Dialog and sheet surfaces no longer duplicate their body column or close
+  button; package-internal `ModalSurfaceBody`/`ModalSurfaceCloseButton`
+  (not exported by `widgets.dart`) are shared and each behavior change lands once.
+- CoreTextField gains CoreTextFieldVariant.textarea; see
+  [the variant policy and migration](text-field-variants.md). CoreButton/…
+  resolve colors and text styles via the ColorContextExtensions/TextThemeExtensions
+  `context.*` API.
+- Full package suite: **663 passed, zero skipped**; analyzer clean. Branch:
+  `feat/bottom-sheet-inline-header`. No new package version, tag or pub.dev
+  release; device testing remains paused.

@@ -132,14 +132,15 @@ class CoreBottomSheet extends StatelessWidget {
                 child: LayoutBuilder(
                   builder: (context, outer) {
                     // The handle is the lowest layout priority: on a
-                    // comfortable sheet it always renders at its full M3
-                    // size, but it is dropped entirely rather than letting
-                    // the title/close row's guaranteed 48dp touch target
-                    // (close at a 1:2 header:body split of whatever
-                    // remains) shrink below spec. 144 = 48 * 3 (header's
-                    // worst-case 1/3 share needs to clear 48 on its own).
+                    // comfortable sheet it always renders, but it is dropped
+                    // entirely rather than letting the title/close row's
+                    // guaranteed 48dp touch target (close at a 1:2
+                    // header:body split of whatever remains) shrink below
+                    // spec. 36 = 16dp padding above + 4dp bar + 16dp below;
+                    // 144 = 48 * 3 (header's worst-case 1/3 share needs to
+                    // clear 48 on its own).
                     const handleReserve =
-                        kSheetHandlePadding * 2 + kMinInteractiveDimension;
+                        kSheetHandlePadding * 2 + kSheetHandleHeight;
                     final showHandle = outer.maxHeight.isFinite &&
                         outer.maxHeight - handleReserve >= 144;
                     return Column(
@@ -150,15 +151,9 @@ class CoreBottomSheet extends StatelessWidget {
                           const Padding(
                             padding: EdgeInsets.symmetric(
                                 vertical: kSheetHandlePadding),
-                            child: Center(
-                              child: SizedBox(
-                                width: kMinInteractiveDimension,
-                                height: kMinInteractiveDimension,
-                                child: Center(child: SheetDragHandle()),
-                              ),
-                            ),
+                            child: Center(child: SheetDragHandle()),
                           ),
-                        Expanded(
+                        Flexible(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             child: Column(

@@ -80,7 +80,8 @@ Button loading matches supplied HubButton.kt: centered 16px circular progress, s
   ahead of the header row, and corrected to the real Material 3 spec /
   Flutter default: 32×4dp fully-rounded bar, `onSurfaceVariant` at 40%
   opacity, 48dp touch target, 22dp padding above/below (was a non-spec
-  40×4/8px-gap `outlineVariant` bar). It is the lowest layout priority and is
+  40×4/8px-gap `outlineVariant` bar; both the touch target and the padding
+  were later compacted — see the entry below). It is the lowest layout priority and is
   dropped entirely — not shrunk — on a sheet too short to also guarantee the
   close button's 48dp touch target (measured via a `LayoutBuilder` check,
   not a fixed flex ratio, after two earlier attempts at flex-ratio tuning
@@ -109,3 +110,21 @@ Button loading matches supplied HubButton.kt: centered 16px circular progress, s
 - Full package suite: **682 passed, zero skipped**; analyzer clean. Committed
   directly to `main` per explicit user instruction (2026-10-29); no new
   package version, tag or pub.dev release.
+
+## Fit-to-content sheet and compact handle — 2026-10-29
+
+- `CoreBottomSheet` no longer fills the screen for short content: the content
+  wrapper is a loose `Flexible` instead of a tight `Expanded`, so a short sheet
+  sits at its intrinsic height. Tall content (small landscape viewport, large
+  text scale or keyboard) still takes the available viewport and scrolls
+  inside `ModalSurfaceBody`, so the keyboard-safe behavior is unchanged.
+  Locked by *"short content keeps the sheet at its intrinsic height"*.
+- The drag handle was compacted from the stock M3 56dp to a 36dp footprint:
+  32×4dp `onSurfaceVariant` bar at 40% opacity with 16dp padding above/below.
+  No 48dp touch target — the modal route owns the drag gesture, so the bar is
+  decorative. `showHandle`'s reserve now matches that footprint
+  (`kSheetHandlePadding * 2 + kSheetHandleHeight = 36`) while keeping the
+  existing 144dp threshold that protects the close button's 48dp target.
+  Locked by *"drag handle keeps its compact 36dp footprint"* (bar 32×4, 16dp
+  top offset, 36dp total).
+- Full package suite: **684 passed, zero skipped**; analyzer clean.

@@ -117,15 +117,18 @@ class ModalSurfaceCloseButton extends StatelessWidget {
 }
 
 // Material 3 bottom sheet drag handle: a 32×4dp fully-rounded bar in
-// onSurfaceVariant (40% opacity), 48dp min touch target, 22dp padding
-// above/below. Ref: m3.material.io bottom-sheets spec and Flutter's own
-// Material 3 default (widgets/bottom_sheet.dart _BottomSheetDragHandle).
+// onSurfaceVariant (40% opacity) with 16dp padding above/below, so the whole
+// affordance occupies 36dp instead of the 56dp of the stock M3 handle. The
+// bar is decorative — the sheet's drag gesture is owned by the modal route,
+// so it needs no 48dp touch target of its own. Ref: m3.material.io
+// bottom-sheets spec and Flutter's own Material 3 default
+// (widgets/bottom_sheet.dart _BottomSheetDragHandle).
 const double kSheetHandleWidth = 32;
 const double kSheetHandleHeight = 4;
-const double kSheetHandlePadding = 22;
+const double kSheetHandlePadding = 16;
 
-/// The Material 3 drag handle bar itself (no touch-target padding).
-/// Callers wrap it in the 48dp min touch target per spec.
+/// The drag handle bar itself, without the padding around it. [CoreBottomSheet]
+/// wraps it in [kSheetHandlePadding] on both sides.
 class SheetDragHandle extends StatelessWidget {
   const SheetDragHandle({super.key});
 

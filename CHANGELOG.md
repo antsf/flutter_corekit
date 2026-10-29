@@ -27,12 +27,13 @@ All notable changes to this project will be documented in this file.
   `CoreBottomSheet`/`CoreTextField`.
 
 ### Changed
-- CoreBottomSheet's drag handle now matches the real Material 3 spec and
-  Flutter's own default: a 32×4dp fully-rounded bar in `onSurfaceVariant` at
-  40% opacity, 48dp touch target, 22dp padding above/below, positioned at the
-  very top of the sheet — above the title/close row, not inside the body
-  column. It is dropped entirely (not shrunk) on a sheet too short to also
-  guarantee the close button's 48dp touch target.
+- CoreBottomSheet's drag handle is a 32×4dp fully-rounded bar in
+  `onSurfaceVariant` at 40% opacity with 16dp padding above/below — a 36dp
+  footprint instead of the stock M3 56dp — positioned at the very top of the
+  sheet, above the title/close row, not inside the body column. The bar is
+  decorative: the modal route owns the drag gesture, so it needs no 48dp
+  touch target of its own. It is dropped entirely (not shrunk) on a sheet too
+  short to also guarantee the close button's 48dp touch target.
 - The close control is a 48px `CoreIconButton` (`Icon(Icons.close, size: 24)`,
   `outlineVariant`); a hard `ConstrainedBox(minWidth/minHeight: 48)` floor
   keeps the touch target even in a squeezed landscape header.
@@ -56,6 +57,10 @@ All notable changes to this project will be documented in this file.
   extensions and `Core*` widgets over the raw Flutter equivalent.
 
 ### Fixed
+- `CoreBottomSheet` now fits short content: the content wrapper is a loose
+  `Flexible` instead of a tight `Expanded`, so a short sheet sits at its
+  intrinsic height while tall content still takes the available viewport and
+  scrolls inside `ModalSurfaceBody`.
 - The drag handle had regressed to rendering *below* the title/close row
   (inside `ModalSurfaceBody`, which is the second `Flexible` in
   `CoreBottomSheet`'s column) instead of above it; it is now built directly
@@ -78,6 +83,10 @@ All notable changes to this project will be documented in this file.
   `CoreTextField.showClearButton`): full package suite **682 passed, zero
   skipped**, analyzer clean. Committed directly to `main` per explicit user
   instruction; no new package version, tag or pub.dev release.
+- 2026-10-29 follow-up 2 (fit-to-content sheets, 36dp compact drag handle and
+  matching handle reserve): full package suite **684 passed, zero skipped**,
+  analyzer clean. Committed directly to `main` per explicit user instruction;
+  no new package version, tag or pub.dev release.
 
 ## 3.1.1 — 2026-10-01
 

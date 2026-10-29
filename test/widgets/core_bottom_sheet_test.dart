@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_corekit/src/widgets/core_bottom_sheet.dart';
+import 'package:flutter_corekit/src/widgets/modal_surface_parts.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> openModal(
@@ -12,6 +13,7 @@ Future<void> openModal(
   bool dismissible = true,
   bool scrollable = true,
   bool showClose = true,
+  bool minimal = false,
   VoidCallback? onClose,
   ValueChanged<Future<String?>>? onResult,
   Widget? child,
@@ -38,21 +40,28 @@ Future<void> openModal(
                     final result = CoreBottomSheet.show<String>(
                       context,
                       title: 'A long heading that must wrap without truncation',
-                      description:
-                          'A detailed explanation remains fully readable at larger text sizes.',
+                      description: minimal
+                          ? null
+                          : 'A detailed explanation remains fully readable at larger text sizes.',
                       isDismissible: dismissible,
                       scrollable: scrollable,
                       showClose: showClose,
                       onClose: onClose,
-                      actions: [
-                        TextButton(
-                            onPressed: () {},
-                            child: const Text('A long secondary action label')),
-                        TextButton(
-                            onPressed: () {},
-                            child: const Text('A long primary action label')),
-                      ],
-                      footer: const Text('Useful footer information'),
+                      actions: minimal
+                          ? const []
+                          : [
+                              TextButton(
+                                  onPressed: () {},
+                                  child: const Text(
+                                      'A long secondary action label')),
+                              TextButton(
+                                  onPressed: () {},
+                                  child: const Text(
+                                      'A long primary action label')),
+                            ],
+                      footer: minimal
+                          ? null
+                          : const Text('Useful footer information'),
                       child: child ??
                           const SizedBox(height: 400, child: Text('Content')),
                     );
@@ -73,6 +82,28 @@ Finder get surface => find
     .first;
 
 void main() {
+  testWidgets('short content keeps the sheet at its intrinsic height',
+      (tester) async {
+    await openModal(tester, minimal: true, child: const Text('Short body'));
+    final sheet = tester.getRect(surface);
+    // A fit-to-content sheet must stay well below the available 524px
+    // (568 minus 24 top / 20 bottom padding), not fill the screen.
+    expect(sheet.height, lessThan(300));
+    expect(find.text('Short body'), findsOneWidget);
+  });
+
+  testWidgets('drag handle keeps its compact 36dp footprint', (tester) async {
+    await openModal(tester, minimal: true, child: const Text('Short body'));
+    final bar = tester.getRect(find.byType(SheetDragHandle));
+    final sheet = tester.getRect(surface);
+    expect(bar.width, kSheetHandleWidth);
+    expect(bar.height, kSheetHandleHeight);
+    // 16dp above the bar (plus 16dp below) = 36dp total, well under the 56dp
+    // the stock M3 handle reserves.
+    expect(bar.top - sheet.top, kSheetHandlePadding);
+    expect(bar.height + kSheetHandlePadding * 2, 36);
+  });
+
   testWidgets('title shares the close header and stays visible while scrolling',
       (tester) async {
     await openModal(tester);

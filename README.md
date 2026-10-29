@@ -73,10 +73,11 @@ normal footprint and accessible action label, and disable repeat actions.
 Reduced-motion settings are respected. Ordinary `CoreTextField`s keep
 input and hint to one line with ellipsis; multiline input opts into
 `CoreTextFieldVariant.textarea`; `showClearButton` adds an optional clear
-affordance. Modal sheets render a Material 3 drag-handle pill (32×4dp,
-`onSurfaceVariant` at 40% opacity, 48dp touch target) above the one-row
-title/close header — dropped entirely rather than shrunk on a sheet too
-short to also guarantee the close button's own 48dp touch target.
+affordance. Modal sheets render a compact Material 3 drag-handle pill
+(32×4dp, `onSurfaceVariant` at 40% opacity, 16dp padding, no separate touch
+target) above the one-row title/close header, fit short content instead of
+filling the screen, and drop the handle entirely rather than shrink it on a
+sheet too short to also guarantee the close button's own 48dp touch target.
 
 ```dart
 CoreButton(label: 'Simpan', onPressed: onSave, isLoading: isSaving);

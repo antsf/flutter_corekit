@@ -22,13 +22,14 @@ detailed list lives in `CHANGELOG.md` (Unreleased section). The prepared
 - CoreButton/CoreTextField colors and styles resolve through the `context.*`
   theme-role extensions.
 - 2026-10-29: the drag handle is now spec-accurate (32×4dp, `onSurfaceVariant`
-  40% opacity, 22dp padding) and actually sits above the title/close row
-  (previous wording claimed this but the implementation rendered it below);
-  every widget now uses `context.*` exclusively (no raw `Theme.of`/
-  `MediaQuery.of`) and every spacer `SizedBox` uses the `.spacingWidth`/
-  `.spacingHeight` num extensions; `CoreTextField.showClearButton` added;
-  `CoreSearchDropdown` added; `CONTRIBUTING.md` documents the consumer-app
-  usage standard.
+  40% opacity) and actually sits above the title/close row (previous wording
+  claimed this but the implementation rendered it below), later compacted to a
+  36dp footprint (16dp padding, no separate touch target); every widget now
+  uses `context.*` exclusively (no raw `Theme.of`/`MediaQuery.of`) and every
+  spacer `SizedBox` uses the `.spacingWidth`/`.spacingHeight` num extensions;
+  `CoreTextField.showClearButton` added; `CoreSearchDropdown` added;
+  `CoreBottomSheet` now fits short content instead of filling the screen;
+  `CONTRIBUTING.md` documents the consumer-app usage standard.
 
 ## Verification and limits
 

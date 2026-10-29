@@ -163,6 +163,26 @@ void main() {
     expect(calls, 1);
     semantics.dispose();
   });
+  testWidgets('caller minimumSize paints smaller while the tap target stays 48',
+      (tester) async {
+    var calls = 0;
+    await tester.pumpWidget(host(Center(
+        child: CoreIconButton(
+            icon: const Icon(Icons.close),
+            tooltip: 'Compact',
+            onPressed: () => calls++,
+            style: IconButton.styleFrom(
+                minimumSize: const Size.square(40),
+                backgroundColor: const Color(0xFFEEEEEE),
+                shape: CircleBorder())))));
+    final material =
+        find.byWidgetPredicate((w) => w is Material && w.shape is CircleBorder);
+    expect(material, findsOneWidget);
+    expect(tester.renderObject<RenderBox>(material.first).size,
+        const Size(40, 40));
+    await tester.tap(find.byType(IconButton));
+    expect(calls, 1);
+  });
   for (final scale in [1.0, 1.5, 2.0, 3.0]) {
     testWidgets('controlled choices and long badges wrap at scale $scale',
         (tester) async {

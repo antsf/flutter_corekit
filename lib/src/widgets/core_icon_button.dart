@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../extensions/extensions.dart';
@@ -28,14 +27,13 @@ class CoreIconButton extends StatelessWidget {
     final active = enabled && !isLoading && onPressed != null;
     final reduced = MediaQuery.disableAnimationsOf(context) ||
         MediaQuery.accessibleNavigationOf(context);
+    // The caller style fully owns the painted box via [ButtonStyle.minimumSize];
+    // the 48px tap target comes from tapTargetSize:padded, not from clamping.
     final effective = IconButton.styleFrom(minimumSize: const Size.square(48))
         .merge(style)
         .copyWith(
-            minimumSize: WidgetStateProperty.resolveWith((states) {
-              final size =
-                  style?.minimumSize?.resolve(states) ?? const Size.square(48);
-              return Size(math.max(48, size.width), math.max(48, size.height));
-            }),
+            minimumSize: WidgetStateProperty.resolveWith((states) =>
+                style?.minimumSize?.resolve(states) ?? const Size.square(48)),
             visualDensity: VisualDensity.standard,
             tapTargetSize: MaterialTapTargetSize.padded);
     final color =

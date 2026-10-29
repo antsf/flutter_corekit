@@ -138,7 +138,7 @@ class SheetDragHandle extends StatelessWidget {
       width: kSheetHandleWidth,
       height: kSheetHandleHeight,
       decoration: BoxDecoration(
-        color: context.onSurfaceVariantColor.withValues(alpha: 0.4),
+        color: context.outlineVariantColor,
         borderRadius: BorderRadius.circular(kSheetHandleHeight / 2),
       ),
     );

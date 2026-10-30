@@ -128,3 +128,16 @@ Button loading matches supplied HubButton.kt: centered 16px circular progress, s
   Locked by *"drag handle keeps its compact 36dp footprint"* (bar 32×4, 16dp
   top offset, 36dp total).
 - Full package suite: **684 passed, zero skipped**; analyzer clean.
+
+## Pinned dropdown search — 2026-10-30
+
+- `CoreSearchDropdown`'s search field no longer scrolls away with the results:
+  the sheet body is `scrollable: false` and the field sits above a loose
+  `Flexible` option list, so only the list scrolls while short result sets
+  still keep the sheet at its intrinsic height.
+- The search field uses `CoreTextField.showClearButton` for an inline trailing
+  close glyph that empties the query (and reinstates every option).
+- Locked by *"search field stays pinned while the option list scrolls"* and
+  *"inline clear control empties the query and restores options"*; the
+  orientation × text-scale × keyboard matrix still fits.
+- Full package suite: **687 passed, zero skipped**; analyzer clean.

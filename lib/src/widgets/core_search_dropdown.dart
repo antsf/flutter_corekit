@@ -8,12 +8,12 @@ import 'core_text_field.dart';
 /// [CoreBottomSheet] instead of a native popup menu.
 ///
 /// The trigger is a read-only field row (label, selected value or hint,
-/// chevron); tapping it opens a keyboard-safe sheet with a search field above
-/// a filtered option list. Picking an option pops the route with the typed
-/// value, so `onChanged` fires only for actual selections — cancelling the
-/// sheet (barrier, back, drag or close) never fires it. No new dependencies,
-/// no domain logic: labels default to `item.toString()`, callers can supply an
-/// [itemLabelBuilder].
+/// chevron); tapping it opens a keyboard-safe sheet with a pinned search field
+/// (and an inline clear control) above a filtered option list. Picking an
+/// option pops the route with the typed value, so `onChanged` fires only for
+/// actual selections — cancelling the sheet (barrier, back, drag or close)
+/// never fires it. No new dependencies, no domain logic: labels default to
+/// `item.toString()`, callers can supply an [itemLabelBuilder].
 class CoreSearchDropdown<T> extends StatefulWidget {
   const CoreSearchDropdown({
     super.key,
@@ -80,7 +80,8 @@ class _CoreSearchDropdownState<T> extends State<CoreSearchDropdown<T>> {
       context,
       title: widget.sheetTitle ?? widget.labelText ?? '',
       closeLabel: widget.closeLabel,
-      // Search field and options scroll with the same keyboard-safe body.
+      // The search field stays pinned; only the option list scrolls.
+      scrollable: false,
       child: _CoreSearchDropdownSheet(
         items: widget.items,
         labelOf: _labelOf,
@@ -135,11 +136,9 @@ class _CoreSearchDropdownState<T> extends State<CoreSearchDropdown<T>> {
                         widget.value == null
                             ? widget.hintText
                             : _labelOf(widget.value as T),
-                        style: context.bodyLarge?.copyWith(
-                          color: widget.value == null
-                              ? context.onSurfaceVariantColor
-                              : context.onSurfaceColor,
-                        ),
+                        style: widget.value == null
+                            ? context.bodyLargeSecondary
+                            : context.bodyLarge,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -216,10 +215,10 @@ class _CoreSearchDropdownSheetState<T>
   @override
   Widget build(BuildContext context) {
     final results = widget.items.where(_matches).toList(growable: false);
-    // One scrolling column (search field and options scroll together): a
-    // pinned search field above an Expanded list cannot fit the tightest
-    // landscape + keyboard + large-text viewport without overflowing, so the
-    // content reuses the sheet's keyboard-safe scrolling body.
+    // Search stays pinned above the options; only the option list scrolls.
+    // The list is a loose `Flexible` so a short result set keeps the sheet at
+    // its intrinsic height while a long one takes the available keyboard-safe
+    // viewport and scrolls inside it.
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -229,41 +228,54 @@ class _CoreSearchDropdownSheetState<T>
           focusNode: _searchFocus,
           hintText: widget.searchHint,
           textInputAction: TextInputAction.search,
+          showClearButton: true,
           onChanged: (value) => setState(() => _query = value),
         ),
         0.5.spacingHeight,
-        if (results.isEmpty)
-          Center(
-            child: Text(widget.noResultsText, textAlign: TextAlign.center),
-          )
-        else
-          for (final item in results)
-            InkWell(
-              onTap: () => widget.onPick(item),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.labelOf(item),
-                          style: context.bodyLarge,
-                          overflow: TextOverflow.ellipsis,
+        Flexible(
+          child: SingleChildScrollView(
+            primary: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (results.isEmpty)
+                  Center(
+                    child:
+                        Text(widget.noResultsText, textAlign: TextAlign.center),
+                  )
+                else
+                  for (final item in results)
+                    InkWell(
+                      onTap: () => widget.onPick(item),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  widget.labelOf(item),
+                                  style: context.bodyLarge,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (item == widget.selected)
+                                Icon(
+                                  Icons.check,
+                                  size: 24,
+                                  color: context.primaryColor,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                      if (item == widget.selected)
-                        Icon(
-                          Icons.check,
-                          size: 24,
-                          color: context.primaryColor,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+                    ),
+              ],
             ),
+          ),
+        ),
       ],
     );
   }

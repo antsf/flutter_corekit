@@ -24,7 +24,8 @@ All notable changes to this project will be documented in this file.
   field once it has text (`outlineVariant`, hidden whenever a caller
   `suffixIcon` is also set — that slot stays caller-owned).
 - `CoreSearchDropdown`: a searchable single-select sheet built on
-  `CoreBottomSheet`/`CoreTextField`.
+  `CoreBottomSheet`/`CoreTextField`; its search field (with an inline clear
+  control) stays pinned above the scrolling option list.
 
 ### Changed
 - CoreBottomSheet's drag handle is a 32×4dp fully-rounded bar in

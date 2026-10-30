@@ -106,6 +106,51 @@ void main() {
     expect(find.text('Jakarta'), findsNothing);
   });
 
+  testWidgets('search field stays pinned while the option list scrolls',
+      (tester) async {
+    await openDropdown(tester,
+        items: List.generate(30, (index) => 'City $index'));
+    await openSheet(tester);
+    final search = find.byType(TextField);
+    final searchBefore = tester.getRect(search);
+    final firstOptionBefore = tester.getTopLeft(find.text('City 0'));
+
+    await tester.drag(find.text('City 0'), const Offset(0, -240));
+    await tester.pumpAndSettle();
+
+    // Only the options moved; the search field kept its position on screen.
+    expect(tester.getRect(search), searchBefore);
+    expect(tester.getTopLeft(find.text('City 0')).dy,
+        lessThan(firstOptionBefore.dy));
+    expect(tester.getRect(search).top,
+        greaterThanOrEqualTo(0)); // still inside the sheet viewport
+  });
+
+  testWidgets('inline clear control empties the query and restores options',
+      (tester) async {
+    await openDropdown(tester);
+    await openSheet(tester);
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'ban');
+    await tester.pumpAndSettle();
+    expect(find.text('Jakarta'), findsNothing);
+    expect(find.text('Bandung'), findsOneWidget);
+
+    final clear = find.byTooltip('Clear');
+    expect(clear, findsOneWidget);
+    final fieldRect = tester.getRect(field);
+    final clearRect = tester.getRect(clear);
+    // Inside the field, on its trailing side.
+    expect(clearRect.left, greaterThan(fieldRect.center.dx));
+    expect(clearRect.right, lessThanOrEqualTo(fieldRect.right));
+
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    expect(find.text('Jakarta'), findsOneWidget);
+    expect(find.text('Bandung'), findsOneWidget);
+    expect(find.byTooltip('Clear'), findsNothing);
+  });
+
   testWidgets('disabled trigger does not open the sheet', (tester) async {
     await openDropdown(tester, disabled: true);
     await openSheet(tester);

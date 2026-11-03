@@ -58,6 +58,12 @@ All notable changes to this project will be documented in this file.
   extensions and `Core*` widgets over the raw Flutter equivalent.
 
 ### Fixed
+- `body*Secondary` and `label*Secondary` text styles now resolve to
+  `onSurfaceVariant` instead of `outline`. Secondary copy is a text role;
+  `outline` is the border/divider role, so using it for body copy rendered
+  secondary text at a lower, non-accessible tone than M3's secondary-text
+  role. Consumers that asserted accessible secondary text against
+  `onSurfaceVariant` were failing on this mismatch.
 - `CoreBottomSheet` now fits short content: the content wrapper is a loose
   `Flexible` instead of a tight `Expanded`, so a short sheet sits at its
   intrinsic height while tall content still takes the available viewport and

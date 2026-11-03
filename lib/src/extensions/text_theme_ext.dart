@@ -80,12 +80,15 @@ extension TextThemeExtensions on BuildContext {
   TextStyle? get bodySmallItalic =>
       textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic);
 
+  // Secondary is a *text* role, so it maps to onSurfaceVariant. outline is the
+  // border/divider role: using it for body copy lowers contrast below the
+  // accessible secondary-text tone consumers styles assert against.
   TextStyle? get bodyLargeSecondary =>
-      textTheme.bodyLarge?.withColor(outlineColor);
+      textTheme.bodyLarge?.withColor(onSurfaceVariantColor);
   TextStyle? get bodyMediumSecondary =>
-      textTheme.bodyMedium?.withColor(outlineColor);
+      textTheme.bodyMedium?.withColor(onSurfaceVariantColor);
   TextStyle? get bodySmallSecondary =>
-      textTheme.bodySmall?.withColor(outlineColor);
+      textTheme.bodySmall?.withColor(onSurfaceVariantColor);
 
   TextStyle? get bodyLargeError => textTheme.bodyLarge?.withColor(errorColor);
   TextStyle? get bodyMediumError => textTheme.bodyMedium?.withColor(errorColor);
@@ -111,11 +114,11 @@ extension TextThemeExtensions on BuildContext {
       textTheme.labelSmall?.copyWith(fontStyle: FontStyle.italic);
 
   TextStyle? get labelLargeSecondary =>
-      textTheme.labelLarge?.withColor(outlineColor);
+      textTheme.labelLarge?.withColor(onSurfaceVariantColor);
   TextStyle? get labelMediumSecondary =>
-      textTheme.labelMedium?.withColor(outlineColor);
+      textTheme.labelMedium?.withColor(onSurfaceVariantColor);
   TextStyle? get labelSmallSecondary =>
-      textTheme.labelSmall?.withColor(outlineColor);
+      textTheme.labelSmall?.withColor(onSurfaceVariantColor);
 
   TextStyle? get labelLargeError => textTheme.labelLarge?.withColor(errorColor);
   TextStyle? get labelMediumError =>

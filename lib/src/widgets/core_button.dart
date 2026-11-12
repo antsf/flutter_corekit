@@ -77,9 +77,11 @@ class CoreButton extends StatelessWidget {
       shape: pill
           ? const StadiumBorder()
           : RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      // Explicit none: a null side would inherit the app's
+      // OutlinedButtonTheme/ElevatedButtonTheme border.
       side: variant == CoreButtonVariant.outlined
           ? BorderSide(color: foreground)
-          : null,
+          : BorderSide.none,
     );
     final content = Stack(alignment: Alignment.center, children: [
       _PreserveContentLayout(
@@ -117,8 +119,7 @@ class CoreButton extends StatelessWidget {
       CoreButtonVariant.primary ||
       CoreButtonVariant.danger =>
         ElevatedButton(onPressed: callback, style: style, child: content),
-      CoreButtonVariant.outlined ||
-      CoreButtonVariant.tonalDanger =>
+      CoreButtonVariant.outlined =>
         OutlinedButton(onPressed: callback, style: style, child: content),
       _ => TextButton(onPressed: callback, style: style, child: content),
     };

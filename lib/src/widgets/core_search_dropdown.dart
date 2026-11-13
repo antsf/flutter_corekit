@@ -29,6 +29,7 @@ class CoreSearchDropdown<T> extends StatefulWidget {
     this.noResultsText = 'No results',
     this.itemLabelBuilder,
     this.disabled = false,
+    this.suffixIcon,
   });
 
   final List<T> items;
@@ -55,6 +56,10 @@ class CoreSearchDropdown<T> extends StatefulWidget {
 
   final String Function(T item)? itemLabelBuilder;
   final bool disabled;
+
+  /// Trailing trigger icon (e.g. an asset icon); defaults to the 24dp
+  /// keyboard_arrow_down chevron.
+  final Widget? suffixIcon;
 
   @override
   State<CoreSearchDropdown<T>> createState() => _CoreSearchDropdownState();
@@ -145,8 +150,9 @@ class _CoreSearchDropdownState<T> extends State<CoreSearchDropdown<T>> {
                   ),
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: Icon(Icons.keyboard_arrow_down,
-                        size: 24, color: context.onSurfaceVariantColor),
+                    child: widget.suffixIcon ??
+                        Icon(Icons.keyboard_arrow_down,
+                            size: 24, color: context.onSurfaceVariantColor),
                   ),
                 ],
               ),

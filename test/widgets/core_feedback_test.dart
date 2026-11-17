@@ -72,6 +72,30 @@ void main() {
     expect(closes, 1);
     expect(taps, 1);
   });
+  testWidgets('iconWidget replaces the leading icon, loading still wins',
+      (tester) async {
+    const marker = Key('custom-icon');
+    await host(
+        tester,
+        const CoreSnackbar(
+            title: 'Disimpan',
+            tone: CoreNoticeTone.success,
+            iconWidget: SizedBox(key: marker)),
+        scale: 1);
+    expect(find.byKey(marker), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsNothing);
+    // It sits in the 24 x 24 slot of the icon.
+    expect(tester.getSize(find.byKey(marker)), const Size(24, 24));
+
+    await host(
+        tester,
+        const CoreSnackbar(
+            title: 'Memuat', isLoading: true, iconWidget: SizedBox(key: marker)),
+        reduced: false);
+    expect(find.byKey(marker), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
   testWidgets('loading respects reduced motion and has no close action',
       (tester) async {
     await host(tester, const CoreSnackbar(title: 'Memuat', isLoading: true),

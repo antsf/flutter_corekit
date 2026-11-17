@@ -13,6 +13,7 @@ class CoreSnackbar extends StatelessWidget {
       this.description,
       this.tone = CoreNoticeTone.regular,
       this.icon,
+      this.iconWidget,
       this.isLoading = false,
       this.onTap,
       this.onClose,
@@ -27,6 +28,11 @@ class CoreSnackbar extends StatelessWidget {
   final String? description;
   final CoreNoticeTone tone;
   final IconData? icon;
+
+  /// A custom leading icon (an SVG, for example) shown in the 24 x 24 slot of
+  /// [icon]; the widget does not tint it, so the caller colors it. It wins over
+  /// [icon]; the loading indicator still wins over both while [isLoading].
+  final Widget? iconWidget;
   final bool isLoading;
   final VoidCallback? onTap, onClose;
   final String closeLabel;
@@ -69,13 +75,16 @@ class CoreSnackbar extends StatelessWidget {
                               dimension: 24,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2.5, color: tint))
-                          : Icon(
-                              icon ??
-                                  (isLoading
-                                      ? Icons.hourglass_top
-                                      : defaultIcon),
-                              color: tint,
-                              size: 24))),
+                          : iconWidget != null
+                              ? SizedBox.square(
+                                  dimension: 24, child: iconWidget)
+                              : Icon(
+                                  icon ??
+                                      (isLoading
+                                          ? Icons.hourglass_top
+                                          : defaultIcon),
+                                  color: tint,
+                                  size: 24))),
               Expanded(
                   child: SingleChildScrollView(
                 primary: false,

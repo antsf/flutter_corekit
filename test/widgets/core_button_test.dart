@@ -130,4 +130,32 @@ void main() {
     await tester.pump();
     expect(calls, 1);
   });
+
+  for (final variant in CoreButtonVariant.values) {
+    testWidgets('$variant border only on outlined, even with a themed border',
+        (tester) async {
+      const themed = BorderSide(color: Colors.red, width: 3);
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(
+          outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(side: themed)),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(side: themed)),
+          textButtonTheme:
+              TextButtonThemeData(style: TextButton.styleFrom(side: themed)),
+        ),
+        home: Scaffold(
+            body: CoreButton(label: 'x', onPressed: () {}, variant: variant)),
+      ));
+      final button = tester.widget<ButtonStyleButton>(
+          find.byWidgetPredicate((w) => w is ButtonStyleButton));
+      final side = button.style!.side!.resolve({});
+      if (variant == CoreButtonVariant.outlined) {
+        expect(side!.style, BorderStyle.solid);
+        expect(side.width, isNot(3));
+      } else {
+        expect(side, BorderSide.none);
+      }
+    });
+  }
 }

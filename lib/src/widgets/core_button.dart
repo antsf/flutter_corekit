@@ -27,6 +27,8 @@ class CoreButton extends StatelessWidget {
     this.fullWidth = false,
     this.minHeight = 50,
     this.loadingLabel = 'Memuat',
+    this.backgroundColor,
+    this.foregroundColor,
   }) : assert(minHeight >= 0);
 
   final String label, loadingLabel;
@@ -36,39 +38,49 @@ class CoreButton extends StatelessWidget {
   final Widget? leadingIcon, trailingIcon;
   final double minHeight;
 
+  /// Overrides the variant's container color while the button is active or
+  /// loading. A disabled button keeps the theme's disabled colors.
+  final Color? backgroundColor;
+
+  /// Overrides the variant's content color (label, icons, spinner). The
+  /// border of [CoreButtonVariant.outlined] follows it.
+  final Color? foregroundColor;
+
   @override
   Widget build(BuildContext context) {
-    final (background, foreground) = switch (variant) {
+    final (variantBackground, variantForeground) = switch (variant) {
       CoreButtonVariant.primary => (
-          context.primaryColor,
-          context.onPrimaryColor
-        ),
+        context.primaryColor,
+        context.onPrimaryColor,
+      ),
       CoreButtonVariant.secondary => (
-          context.secondaryColor,
-          context.onSecondaryColor
-        ),
+        context.secondaryColor,
+        context.onSecondaryColor,
+      ),
       CoreButtonVariant.danger => (context.errorColor, context.onErrorColor),
       CoreButtonVariant.tonalPrimary => (
-          context.primaryContainerColor,
-          context.onPrimaryContainerColor
-        ),
+        context.primaryContainerColor,
+        context.onPrimaryContainerColor,
+      ),
       CoreButtonVariant.tonalDanger => (
-          context.errorContainerColor,
-          context.onErrorContainerColor
-        ),
-      CoreButtonVariant.outlined || CoreButtonVariant.text => (
-          context.surfaceColor,
-          context.primaryColor
-        ),
+        context.errorContainerColor,
+        context.onErrorContainerColor,
+      ),
+      CoreButtonVariant.outlined ||
+      CoreButtonVariant.text => (context.surfaceColor, context.primaryColor),
     };
+    final background = backgroundColor ?? variantBackground;
+    final foreground = foregroundColor ?? variantForeground;
     final active = enabled && !isLoading && onPressed != null;
     final style = TextButton.styleFrom(
       backgroundColor: background,
       foregroundColor: foreground,
-      disabledBackgroundColor:
-          isLoading ? background : context.colorScheme.surfaceContainerHighest,
-      disabledForegroundColor:
-          isLoading ? foreground : context.onSurfaceVariantColor,
+      disabledBackgroundColor: isLoading
+          ? background
+          : context.colorScheme.surfaceContainerHighest,
+      disabledForegroundColor: isLoading
+          ? foreground
+          : context.onSurfaceVariantColor,
       minimumSize: Size(48, minHeight < 48 ? 48 : minHeight),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -83,56 +95,73 @@ class CoreButton extends StatelessWidget {
           ? BorderSide(color: foreground)
           : BorderSide.none,
     );
-    final content = Stack(alignment: Alignment.center, children: [
-      _PreserveContentLayout(
-        offstage: isLoading,
-        child: Row(
+    final content = Stack(
+      alignment: Alignment.center,
+      children: [
+        _PreserveContentLayout(
+          offstage: isLoading,
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (leadingIcon != null) ...[leadingIcon!, 0.5.spacingWidth],
               Flexible(
-                  child:
-                      Text(label, textAlign: TextAlign.center, softWrap: true)),
+                child: Text(label, textAlign: TextAlign.center, softWrap: true),
+              ),
               if (trailingIcon != null) ...[0.5.spacingWidth, trailingIcon!],
-            ]),
-      ),
-      if (isLoading)
-        Positioned.fill(
+            ],
+          ),
+        ),
+        if (isLoading)
+          Positioned.fill(
             child: Center(
-                child: SizedBox.square(
-          dimension: 16,
-          child: TickerMode(
-              enabled: !MediaQuery.disableAnimationsOf(context) &&
-                  !MediaQuery.accessibleNavigationOf(context),
-              child: CircularProgressIndicator(
-                  strokeWidth: 1,
-                  color: foreground,
-                  value: MediaQuery.disableAnimationsOf(context) ||
-                          MediaQuery.accessibleNavigationOf(context)
-                      ? 0.75
-                      : null)),
-        ))),
-    ]);
+              child: SizedBox.square(
+                dimension: 16,
+                child: TickerMode(
+                  enabled:
+                      !MediaQuery.disableAnimationsOf(context) &&
+                      !MediaQuery.accessibleNavigationOf(context),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1,
+                    color: foreground,
+                    value:
+                        MediaQuery.disableAnimationsOf(context) ||
+                            MediaQuery.accessibleNavigationOf(context)
+                        ? 0.75
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
     final callback = active ? onPressed : null;
     final Widget button = switch (variant) {
-      CoreButtonVariant.primary ||
-      CoreButtonVariant.danger =>
-        ElevatedButton(onPressed: callback, style: style, child: content),
-      CoreButtonVariant.outlined =>
-        OutlinedButton(onPressed: callback, style: style, child: content),
+      CoreButtonVariant.primary || CoreButtonVariant.danger => ElevatedButton(
+        onPressed: callback,
+        style: style,
+        child: content,
+      ),
+      CoreButtonVariant.outlined => OutlinedButton(
+        onPressed: callback,
+        style: style,
+        child: content,
+      ),
       _ => TextButton(onPressed: callback, style: style, child: content),
     };
     return Semantics(
-        label: isLoading ? '$label, $loadingLabel' : label,
-        button: true,
-        enabled: active,
-        liveRegion: isLoading,
-        onTap: callback,
-        child: ExcludeSemantics(
-            child: fullWidth
-                ? SizedBox(width: double.infinity, child: button)
-                : button));
+      label: isLoading ? '$label, $loadingLabel' : label,
+      button: true,
+      enabled: active,
+      liveRegion: isLoading,
+      onTap: callback,
+      child: ExcludeSemantics(
+        child: fullWidth
+            ? SizedBox(width: double.infinity, child: button)
+            : button,
+      ),
+    );
   }
 }
 

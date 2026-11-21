@@ -118,8 +118,8 @@ void main() {
     expect(field.enableSuggestions, isFalse);
     expect(field.autocorrect, isFalse);
     final decoration = field.decoration!;
-    expect(
-        decoration.contentPadding, const EdgeInsets.symmetric(horizontal: 16));
+    expect(decoration.contentPadding,
+        const EdgeInsetsDirectional.only(end: 16, top: 12, bottom: 12));
   });
 
   for (final scale in [1.0, 1.5, 2.0, 3.0]) {
@@ -313,5 +313,48 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('Account reference')), findsWidgets);
     expect(find.byType(EditableText), findsOneWidget);
     handle.dispose();
+  });
+
+  group('geometry', () {
+    double dx(WidgetTester tester, Finder f) => tester.getTopLeft(f).dx;
+
+    testWidgets('error and helper text sit flush with the field edge',
+        (tester) async {
+      await tester.pumpWidget(host(
+          const CoreTextField(initialValue: 'abc', errorText: 'Wajib diisi')));
+      final field = dx(tester, find.byType(CoreTextField));
+      expect(dx(tester, find.text('Wajib diisi')), field);
+      await tester.pumpWidget(host(
+          const CoreTextField(initialValue: 'abc', helperText: 'Petunjuk')));
+      expect(dx(tester, find.text('Petunjuk')), field);
+    });
+
+    testWidgets('the typed text keeps its horizontalPadding inset',
+        (tester) async {
+      await tester.pumpWidget(host(
+          const CoreTextField(initialValue: 'abc', horizontalPadding: 16)));
+      expect(
+          dx(tester, find.byType(EditableText)) -
+              dx(tester, find.byType(CoreTextField)),
+          16);
+    });
+
+    testWidgets('a single-line field keeps its 50 px body', (tester) async {
+      await tester.pumpWidget(host(const CoreTextField(initialValue: 'abc')));
+      expect(tester.getSize(find.byType(InputDecorator)).height, 50);
+    });
+
+    testWidgets('a textarea pads its lines top and bottom like a single line',
+        (tester) async {
+      await tester.pumpWidget(host(const CoreTextField(
+          variant: CoreTextFieldVariant.textarea,
+          maxLines: 3,
+          verticalPadding: 12,
+          initialValue: 'a\nb\nc')));
+      final box = tester.getRect(find.byType(InputDecorator));
+      final text = tester.getRect(find.byType(EditableText));
+      expect(text.top - box.top, greaterThanOrEqualTo(12));
+      expect(box.bottom - text.bottom, greaterThanOrEqualTo(12));
+    });
   });
 }

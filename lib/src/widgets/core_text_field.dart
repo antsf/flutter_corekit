@@ -251,8 +251,16 @@ class _CoreTextFieldState extends State<CoreTextField> {
           minWidth: 48.0,
           minHeight: bodyHeight,
         ),
-        contentPadding:
-            EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
+        // The input's own start inset comes from the prefix spacer above, so
+        // the start padding is 0: helper and error text then sit flush with
+        // the field's left edge, like the label. A textarea has no fixed
+        // body height to center in, so it gets the same vertical padding a
+        // single-line field gets from [verticalPadding].
+        contentPadding: EdgeInsetsDirectional.only(
+          end: widget.horizontalPadding,
+          top: textarea ? widget.verticalPadding : 0,
+          bottom: textarea ? widget.verticalPadding : 0,
+        ),
         isDense: true,
       ),
     );
